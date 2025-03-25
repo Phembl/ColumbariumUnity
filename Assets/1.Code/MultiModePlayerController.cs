@@ -505,6 +505,9 @@ public class MultiModePlayerController : MonoBehaviour
 
     public void UnlockInput()
     {
+        // Overrides current y rotation
+        yRotation = transform.eulerAngles.y;
+
         isInputLocked = false;
     }
     
