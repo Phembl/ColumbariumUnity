@@ -173,7 +173,7 @@ public class MultiModePlayerController : MonoBehaviour
         // Handle bug mode head bob
         if (currentMode == MovementMode.Bug && enableBugHeadBob)
         {
-            HandleBugHeadBob();
+            HandleBugHeadBobUpdate();
         }
     }
 
@@ -326,6 +326,7 @@ public class MultiModePlayerController : MonoBehaviour
         }
     }
 
+   
     private void HandleBugMovement()
     {
         // Calculate movement direction
@@ -340,6 +341,7 @@ public class MultiModePlayerController : MonoBehaviour
         // Apply velocity
         rb.linearVelocity = targetVelocity;
     }
+    /*
 
     private void HandleBugHeadBob()
     {
@@ -379,7 +381,7 @@ public class MultiModePlayerController : MonoBehaviour
             }
         }
     }
-
+*/
     #endregion
 
     #region Helper Methods
@@ -483,12 +485,10 @@ public class MultiModePlayerController : MonoBehaviour
                 rb.useGravity = true;
                 rb.linearDamping = 0;
                 currentSpeed = bugWalkSpeed;
-                
-                // Set camera very low to the ground
-                Vector3 bugCameraPos = cameraTransform.localPosition;
-                bugCameraPos.y = bugCameraHeight;
-                cameraTransform.localPosition = bugCameraPos;
-                
+    
+                // Position camera using the ground-relative method
+                PositionBugCameraLow();
+    
                 // Reset head-bobbing timer
                 headBobTimer = 0f;
                 break;
@@ -525,4 +525,81 @@ public class MultiModePlayerController : MonoBehaviour
     }
 
     #endregion
+    
+    // Method to position the camera extremely low to the ground for bug mode
+    private void PositionBugCameraLow()
+    {
+        if (cameraTransform == null) return;
+        
+        // 1. Create a ray directly downward from the player to find the ground
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, Vector3.down, out hit, 10f))
+        {
+            // Calculate desired camera position based on ground hit
+            // Use a very small offset (e.g., 0.05f) to prevent clipping
+            float minDistanceFromGround = 0.05f;
+            
+            // Calculate world space position for camera
+            Vector3 desiredWorldPos = hit.point + Vector3.up * (minDistanceFromGround + bugCameraHeight);
+            
+            // Convert desired world position to local position relative to player
+            Vector3 desiredLocalPos = transform.InverseTransformPoint(desiredWorldPos);
+            
+            // Set the local Y position directly (keep X and Z as they are)
+            Vector3 newCameraPos = cameraTransform.localPosition;
+            newCameraPos.y = desiredLocalPos.y;
+            cameraTransform.localPosition = newCameraPos;
+            
+            Debug.Log($"Bug camera positioned at {bugCameraHeight} meters from ground " +
+                     $"(world Y: {desiredWorldPos.y}, local Y: {desiredLocalPos.y})");
+        }
+        else
+        {
+            // Fallback if ground not found - set a very low position
+            Vector3 newPos = cameraTransform.localPosition;
+            newPos.y = bugCameraHeight;
+            cameraTransform.localPosition = newPos;
+            
+            Debug.Log($"Ground not found. Setting bug camera to {bugCameraHeight}");
+        }
+    }
+
+    // Override the head bob method to ensure proper camera height
+    private void HandleBugHeadBobUpdate()
+    {
+        // Only apply head-bobbing when the bug is moving and on the ground
+        Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
+        float speed = horizontalVelocity.magnitude;
+        bool isMoving = speed > 0.1f;
+        
+        if (isMoving && isGrounded)
+        {
+            // Update the head-bob timer based on movement speed
+            headBobTimer += Time.deltaTime * bugHeadBobSpeed * (speed / bugWalkSpeed);
+            
+            // Calculate the vertical offset using a sine wave
+            float verticalOffset = Mathf.Sin(headBobTimer) * bugHeadBobAmount;
+            
+            // Get the current camera position 
+            RaycastHit hit;
+            if (Physics.Raycast(transform.position, Vector3.down, out hit, 10f))
+            {
+                // Position relative to the ground with bobbing effect
+                float minDistanceFromGround = 0.05f;
+                Vector3 desiredWorldPos = hit.point + Vector3.up * (minDistanceFromGround + bugCameraHeight + verticalOffset);
+                Vector3 desiredLocalPos = transform.InverseTransformPoint(desiredWorldPos);
+                
+                // Apply position (with side wobble)
+                Vector3 newCameraPosition = cameraTransform.localPosition;
+                newCameraPosition.y = desiredLocalPos.y;
+                newCameraPosition.x = Mathf.Cos(headBobTimer * 0.5f) * (bugHeadBobAmount * 0.3f);
+                cameraTransform.localPosition = newCameraPosition;
+            }
+        }
+        else
+        {
+            // When not moving, ensure camera is at correct height
+            PositionBugCameraLow();
+        }
+    }
 }

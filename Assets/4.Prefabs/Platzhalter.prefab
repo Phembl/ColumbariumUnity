@@ -13,6 +13,10 @@ PrefabInstance:
       value: 0.001
       objectReference: {fileID: 0}
     - target: {fileID: -3955353439144410109, guid: e2d055eb3f35c41458b36c910fd4527f, type: 3}
+      propertyPath: _sourceData
+      value: 
+      objectReference: {fileID: 7239065423396753691, guid: 00f9ce4d868936448b85aaa131bb3a8a, type: 3}
+    - target: {fileID: -3955353439144410109, guid: e2d055eb3f35c41458b36c910fd4527f, type: 3}
       propertyPath: _pointTint.b
       value: 1
       objectReference: {fileID: 0}
