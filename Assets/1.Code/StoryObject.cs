@@ -119,11 +119,7 @@ public class StoryObject : MonoBehaviour
             Destroy(gameObject);
         }
     }
+    
 
-    // Optional: Add a method to update the story content at runtime
-    public void UpdateStoryContent(string newText, AudioClip newAudio)
-    {
-        storyText = newText;
-        narrationAudio = newAudio;
-    }
+    
 }

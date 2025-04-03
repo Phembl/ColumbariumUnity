@@ -149,8 +149,6 @@ public class MultiModePlayerController : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        // Start in Human mode
-        SetMovementMode(MovementMode.Human);
     }
 
     private void Update()

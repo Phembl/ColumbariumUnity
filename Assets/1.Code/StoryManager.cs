@@ -33,7 +33,9 @@ public class StoryManager : MonoBehaviour
     [Header("Player References")]
     [Tooltip("Reference to the player controller")]
     [SerializeField] private MultiModePlayerController playerController;
-
+    [Tooltip("Reference to the player GameObject")]
+    public GameObject player;
+    
     [Header("Transition Settings")]
     [Tooltip("Duration of screen fade transitions")]
     [SerializeField] private float fadeScreenDuration = 0.5f;
@@ -46,6 +48,56 @@ public class StoryManager : MonoBehaviour
     [Header("Audio")]
     [Tooltip("Audio source for playing story narration")]
     [SerializeField] private AudioSource audioSource;
+    
+    // Enum to select the starting chapter
+    public enum Chapter
+    {
+        PROLOG,
+        NICHTS,
+        DER_PARADISE_GARTEN,
+        DER_TAUBENSCHLAG,
+        BECOMING_PIGEON,
+        BE_A_TRICKSTER_BUILD_A_WORLD,
+        EMBRYO,
+        FAREWELL
+    }
+    
+    [Header("Story Setup")]
+    [Tooltip("Select which chapter to start from")]
+    public Chapter startingChapter = Chapter.NICHTS;
+    
+
+    [Header("Chapter References")]
+    [Tooltip("GameObject containing Prolog content")]
+    public GameObject prolog;
+    
+    [Tooltip("GameObject containing Chapter 1 content")]
+    public GameObject chapter1;
+    
+    [Tooltip("GameObject containing Chapter 2 content")]
+    public GameObject chapter2;
+    
+    [Tooltip("GameObject containing Chapter 3 content")]
+    public GameObject chapter3;
+    
+    [Tooltip("GameObject containing Chapter 4 content")]
+    public GameObject chapter4;
+    
+    [Tooltip("GameObject containing Chapter 5 content")]
+    public GameObject chapter5;
+    
+    [Tooltip("GameObject containing Chapter 6 content")]
+    public GameObject chapter6;
+    
+    [Tooltip("GameObject containing Chapter 7 content")]
+    public GameObject chapter7;
+    
+    [Header("Specific Story Elements")]
+    public GameObject chapter3Blocker;
+    
+    // Internal references
+    private GameObject[] chapters;
+    private int internalChapterProgress;
 
     // Internal state tracking
     private bool isStoryPlaying = false;
@@ -86,24 +138,100 @@ public class StoryManager : MonoBehaviour
             storyText.color = initialColor;
             storyText.gameObject.SetActive(false);
         }
+        
+        // Initialize array of chapter GameObjects for easier handling
+        chapters = new GameObject[]
+        {
+            prolog,
+            chapter1,
+            chapter2,
+            chapter3,
+            chapter4,
+            chapter5,
+            chapter6,
+            chapter7
+        };
     }
     
+    private void Start()
+    {
+        // Initialize the game with the selected chapter
+        InitializeGame();
+    }
+    
+       /// <summary>
+    /// Initializes the game by activating the selected chapter and positioning the player
+    /// </summary>
+    private void InitializeGame()
+    {
+        // Get the index of the selected chapter
+        int selectedChapterIndex = (int)startingChapter;
+        
+        // Activate only the selected chapter, deactivate all others
+        for (int i = 0; i < chapters.Length; i++)
+        {
+            if (chapters[i] != null)
+            {
+                chapters[i].SetActive(i == selectedChapterIndex);
+            }
+        }
+        
+        // Get the active chapter
+        GameObject activeChapter = chapters[selectedChapterIndex];
+        
+        // Find the PlayerStart object in the active chapter
+        Transform playerStart = activeChapter.transform.Find("PlayerStart");
+        
+        // Set Start Movement Mode
+            
+        if (selectedChapterIndex == 4)
+        {
+            playerController.SetMovementMode(MultiModePlayerController.MovementMode.Bird);
+        }
+        else if (selectedChapterIndex == 5)
+        {
+            playerController.SetMovementMode(MultiModePlayerController.MovementMode.Bug);
+        }
+        else
+        {
+            playerController.SetMovementMode(MultiModePlayerController.MovementMode.Human);
+        }
+            
+        if (playerStart != null && player != null)
+        {
+                // Position the player at the PlayerStart position
+                player.transform.position = playerStart.position;
+                
+                // Directly copy the rotation from PlayerStart to player
+                player.transform.rotation = playerStart.rotation;
 
-    
-    private void OnEnable()
+                
+                // Lock input briefly to prevent immediate override
+                playerController.LockInput();
+                // Schedule unlock after a short delay
+                StartCoroutine(DelayedUnlock(playerController));
+                
+        }
+        else
+        {
+                Debug.LogError($"PlayerStart not found in Chapter {selectedChapterIndex + 1} or Player reference is missing");
+        }
+           
+        
+    }
+       
+    /// <summary>
+    /// Coroutine to unlock player input after a short delay
+    /// </summary>
+    private IEnumerator DelayedUnlock(MultiModePlayerController controller)
     {
-        // No actions to enable
+        // Wait a short time to ensure rotation is applied
+        yield return new WaitForSeconds(0.5f);
+        
+        // Unlock player input
+        controller.UnlockInput();
     }
     
-    private void OnDisable()
-    {
-        // No actions to disable
-    }
-    
-    private void OnDestroy()
-    {
-        // No callbacks to remove
-    }
     /// <summary>
     /// Public method to check if a story is currently playing
     /// </summary>
@@ -345,5 +473,30 @@ public class StoryManager : MonoBehaviour
         EnablePlayerInput();
         
 
+    }
+    
+    public void ContinueStory(int storyID)
+    {
+        switch (storyID)
+        {
+            case 0:
+                chapters[1].SetActive(false);
+                chapters[2].SetActive(true);
+                break;
+            case 1:
+                internalChapterProgress++;
+                if (internalChapterProgress == 3)
+                {
+                    Debug.Log("Taubenschlag unlocked");
+                    chapter3Blocker.SetActive(false);
+                }
+                break;
+            case 2:
+                {
+                    chapters[2].SetActive(false);
+                    chapters[3].SetActive(true);
+                    break;
+                }
+        }
     }
 }

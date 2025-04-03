@@ -20,7 +20,7 @@ public class GameManager : MonoBehaviour
         FAREWELL
     }
     
-    [Header("Game Setup")]
+    [Header("Story Setup")]
     [Tooltip("Select which chapter to start from")]
     public Chapter startingChapter = Chapter.NICHTS;
     
