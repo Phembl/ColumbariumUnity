@@ -12,8 +12,8 @@ TagManager:
   - Water
   - UI
   - Post_Processing
-  - 
-  - 
+  - Pointcloud
+  - Text
   - 
   - 
   - 
@@ -40,6 +40,9 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Test
+    uniqueID: 757908549
     locked: 0
   m_RenderingLayers:
   - Default

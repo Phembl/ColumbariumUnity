@@ -26,6 +26,9 @@ public class StoryObject : MonoBehaviour
     [Tooltip("Should the object be destroyed after being triggered?")]
     [SerializeField] private bool destroyAfterTrigger = false;
 
+    private GameObject activeModel;
+    private GameObject inactiveModel;
+
     // Track if this story has been triggered
     private bool hasBeenTriggered = false;
 
@@ -53,6 +56,22 @@ public class StoryObject : MonoBehaviour
         {
             objCollider.isTrigger = true;
         }
+        
+        Transform childTransform = transform.Find("Active");
+        activeModel = childTransform?.gameObject;
+        childTransform = transform.Find("Inactive");
+        inactiveModel = childTransform?.gameObject;
+
+        if (activeModel == null || inactiveModel == null)
+        {
+            Debug.LogWarning("No models found.");
+        }
+        else
+        {
+            activeModel.SetActive(true);
+            inactiveModel.SetActive(false);
+        }
+            
     }
 
     private void OnTriggerEnter(Collider other)
@@ -90,6 +109,9 @@ public class StoryObject : MonoBehaviour
         {
             Debug.LogError("StoryManager not found in the scene. Make sure it exists before any StoryObjects are triggered.");
         }
+        
+        activeModel.SetActive(false);
+        inactiveModel.SetActive(true);
 
         // Destroy the object if configured to do so
         if (destroyAfterTrigger)

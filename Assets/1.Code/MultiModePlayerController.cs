@@ -26,8 +26,6 @@ public class MultiModePlayerController : MonoBehaviour
     [Header("Human Settings")]
     [Tooltip("Movement speed in Human mode")]
     public float humanWalkSpeed = 6f;
-    [Tooltip("Jump force in Human mode")]
-    public float humanJumpForce = 8f;
     [Tooltip("Camera height in Human mode")]
     public float humanCameraHeight = 1.8f;
 
@@ -111,15 +109,12 @@ public class MultiModePlayerController : MonoBehaviour
         
         moveAction = playerActionMap.FindAction("Move");
         lookAction = playerActionMap.FindAction("Look");
-        jumpAction = playerActionMap.FindAction("Jump");
         humanModeAction = playerActionMap.FindAction("HumanMode");
         birdModeAction = playerActionMap.FindAction("BirdMode");
         bugModeAction = playerActionMap.FindAction("BugMode");
         skipAction = playerActionMap.FindAction("Skip");
 
         // Add input callbacks
-        jumpAction.performed += ctx => StartJump();
-        jumpAction.canceled += ctx => StopJump();
         humanModeAction.performed += ctx => SetMovementMode(MovementMode.Human);
         birdModeAction.performed += ctx => SetMovementMode(MovementMode.Bird);
         bugModeAction.performed += ctx => SetMovementMode(MovementMode.Bug);
@@ -163,10 +158,11 @@ public class MultiModePlayerController : MonoBehaviour
         // Get input values
         moveInput = moveAction.ReadValue<Vector2>();
         lookInput = lookAction.ReadValue<Vector2>() * lookSensitivity;
+        
 
         // Handle camera rotation
         HandleLookRotation();
-
+        
         // Check if grounded
         CheckGroundStatus();
 
@@ -182,6 +178,7 @@ public class MultiModePlayerController : MonoBehaviour
         // Skip movement handling if input is locked
         if (isInputLocked)
             return;
+
             
         // Handle movement based on current mode
         switch (currentMode)
@@ -429,24 +426,7 @@ public class MultiModePlayerController : MonoBehaviour
         isGrounded = Physics.Raycast(rayStart, Vector3.down, out hit, 
                                     capsuleCollider.height / 2 + GROUND_CHECK_DISTANCE);
     }
-
-    private void StartJump()
-    {
-        // Only jump in Human or Bug mode and when grounded
-        if (currentMode != MovementMode.Bird && isGrounded)
-        {
-            isJumping = true;
-            
-            // Apply jump force
-            float jumpForce = (currentMode == MovementMode.Human) ? humanJumpForce : humanJumpForce * 0.5f;
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-        }
-    }
-
-    private void StopJump()
-    {
-        isJumping = false;
-    }
+    
 
     public void SetMovementMode(MovementMode newMode)
     {
@@ -501,6 +481,9 @@ public class MultiModePlayerController : MonoBehaviour
     public void LockInput()
     {
         isInputLocked = true;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+        rb.isKinematic = true;
     }
 
     public void UnlockInput()
@@ -509,6 +492,7 @@ public class MultiModePlayerController : MonoBehaviour
         yRotation = transform.eulerAngles.y;
 
         isInputLocked = false;
+        rb.isKinematic = false;
     }
     
     /// <summary>

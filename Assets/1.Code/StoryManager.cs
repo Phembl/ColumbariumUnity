@@ -243,49 +243,7 @@ public class StoryManager : MonoBehaviour
     /// </summary>
     private void DisablePlayerInput()
     {
-        if (playerController != null)
-        {
-            // Directly lock input in the player controller
-            playerController.LockInput();
-            
-            // Still disable the actions to prevent any input processing
-            var playerInput = playerController.GetComponent<PlayerInput>();
-            if (playerInput != null && playerInput.actions != null)
-            {
-                var playerActionMap = playerInput.actions.FindActionMap("Player");
-                if (playerActionMap != null)
-                {
-                    // Disable specific actions instead of the whole action map
-                    var moveAction = playerActionMap.FindAction("Move");
-                    var lookAction = playerActionMap.FindAction("Look");
-                    var jumpAction = playerActionMap.FindAction("Jump");
-                    
-                    if (moveAction != null) moveAction.Disable();
-                    if (lookAction != null) lookAction.Disable();
-                    if (jumpAction != null) jumpAction.Disable();
-                    
-                    // Keep other actions enabled
-                }
-            }
-            
-            // Freeze the player's rigidbody
-            Rigidbody rb = playerController.GetComponent<Rigidbody>();
-            if (rb != null)
-            {
-                rb.linearVelocity = Vector3.zero;
-                rb.angularVelocity = Vector3.zero;
-                rb.isKinematic = true;
-            }
-            
-            // Save cursor state but keep it locked and invisible
-            // This maintains immersion during story sequences
-            previousCursorLockState = Cursor.lockState;
-            previousCursorVisible = Cursor.visible;
-            
-            // Keep cursor locked and invisible during story mode
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
+        playerController.LockInput();
     }
 
     /// <summary>
@@ -293,40 +251,7 @@ public class StoryManager : MonoBehaviour
     /// </summary>
     private void EnablePlayerInput()
     {
-        if (playerController != null)
-        {
-            // Directly unlock input in the player controller
-            playerController.UnlockInput();
-            
-            // Re-enable specific actions that we disabled
-            var playerInput = playerController.GetComponent<PlayerInput>();
-            if (playerInput != null && playerInput.actions != null)
-            {
-                var playerActionMap = playerInput.actions.FindActionMap("Player");
-                if (playerActionMap != null)
-                {
-                    // Re-enable specific actions
-                    var moveAction = playerActionMap.FindAction("Move");
-                    var lookAction = playerActionMap.FindAction("Look");
-                    var jumpAction = playerActionMap.FindAction("Jump");
-                    
-                    if (moveAction != null) moveAction.Enable();
-                    if (lookAction != null) lookAction.Enable();
-                    if (jumpAction != null) jumpAction.Enable();
-                }
-            }
-            
-            // Re-enable physics
-            Rigidbody rb = playerController.GetComponent<Rigidbody>();
-            if (rb != null)
-            {
-                rb.isKinematic = false;
-            }
-            
-            // Restore previous cursor state
-            Cursor.lockState = previousCursorLockState;
-            Cursor.visible = previousCursorVisible;
-        }
+        playerController.UnlockInput();
     }
 
     /// <summary>
