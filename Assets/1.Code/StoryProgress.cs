@@ -27,8 +27,12 @@ public class StoryProgress : MonoBehaviour
     
     private void SendStoryID()
     {
-        Debug.Log("Sending Story ID: " + storyID);
-        StoryManager.Instance.ContinueStory(storyID);
+        if (StoryManager.Instance != null)
+        {
+            Debug.Log("Sending Story ID: " + storyID);
+            StoryManager.Instance.ContinueStory(storyID);
+        }
+
     }
     
 }

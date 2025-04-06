@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 5890cef7dd7f91643bc987a188307343
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 312038
+  packageName: Sound Shapes - Dynamic Audio Areas
+  packageVersion: 1.0
+  assetPath: Assets/TelePresent/Sound Shapes/Scripts/AudioZoneMultiEmitterHandler.cs
+  uploadId: 743890

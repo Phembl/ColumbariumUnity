@@ -439,6 +439,8 @@ public class MultiModePlayerController : MonoBehaviour
                 rb.useGravity = true;
                 rb.linearDamping = 0;
                 currentSpeed = humanWalkSpeed;
+                capsuleCollider.height = 1.2f;
+                capsuleCollider.radius = 0.2f;
                 
                 // Set camera to human height
                 Vector3 humanCameraPos = cameraTransform.localPosition;
@@ -451,6 +453,8 @@ public class MultiModePlayerController : MonoBehaviour
                 rb.useGravity = true;
                 rb.linearDamping = 0.5f; // Add some air resistance
                 currentSpeed = birdFlySpeed;
+                capsuleCollider.height = 0.1f;
+                capsuleCollider.radius = 0.2f;
                 
                 // Set camera to bird height
                 Vector3 birdCameraPos = cameraTransform.localPosition;
@@ -463,6 +467,8 @@ public class MultiModePlayerController : MonoBehaviour
                 rb.useGravity = true;
                 rb.linearDamping = 0;
                 currentSpeed = bugWalkSpeed;
+                capsuleCollider.height = 0.2f;
+                capsuleCollider.radius = 0.2f;
     
                 // Position camera using the ground-relative method
                 PositionBugCameraLow();

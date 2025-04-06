@@ -52,7 +52,7 @@ Camera:
   m_ShutterSpeed: 0.005
   m_Aperture: 16
   m_FocusDistance: 10
-  m_FocalLength: 50
+  m_FocalLength: 20.78461
   m_BladeCount: 5
   m_Curvature: {x: 2, y: 11}
   m_BarrelClipping: 0.25
@@ -67,7 +67,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60
+  field of view: 60.000004
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -113,14 +113,14 @@ MonoBehaviour:
   m_RendererIndex: -1
   m_VolumeLayerMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 64
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
   m_RenderPostProcessing: 1
-  m_Antialiasing: 1
+  m_Antialiasing: 2
   m_AntialiasingQuality: 2
-  m_StopNaN: 0
-  m_Dithering: 0
+  m_StopNaN: 1
+  m_Dithering: 1
   m_ClearDepth: 1
   m_AllowXRRendering: 1
   m_AllowHDROutput: 1
@@ -276,7 +276,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7831435323494160224}
   - component: {fileID: 1494945029459008588}
-  - component: {fileID: 8453283951474588394}
+  - component: {fileID: 8227918692080328835}
   - component: {fileID: 401058891948897709}
   m_Layer: 0
   m_Name: Player
@@ -329,7 +329,7 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!136 &8453283951474588394
+--- !u!136 &8227918692080328835
 CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -348,8 +348,8 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 2
+  m_Radius: 0.18
+  m_Height: 1.21
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &401058891948897709
@@ -366,9 +366,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cameraTransform: {fileID: 5960087174850162963}
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  humanWalkSpeed: 4
-  humanJumpForce: 8
-  humanCameraHeight: 1.6
+  humanWalkSpeed: 7
+  humanCameraHeight: 1
   birdFlySpeed: 8
   birdGravityScale: 0.2
   birdCameraHeight: 1.8
@@ -376,10 +375,10 @@ MonoBehaviour:
   birdGlideDownwardFactor: 0.1
   birdGlideFactor: 0.998
   bugWalkSpeed: 2
-  bugCameraHeight: 0.2
+  bugCameraHeight: 0.25
   enableBugHeadBob: 1
-  bugHeadBobSpeed: 10
-  bugHeadBobAmount: 0.04
+  bugHeadBobSpeed: 8
+  bugHeadBobAmount: 0.02
   lookSensitivity: 0.1
   maxLookUp: 70
   maxLookDown: -70

@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 8469d333230c16740a9cd59d8de7187e
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 312038
+  packageName: Sound Shapes - Dynamic Audio Areas
+  packageVersion: 1.0
+  assetPath: Assets/TelePresent/Sound Shapes/Editor/AudioZoneDrawingTools.cs
+  uploadId: 743890

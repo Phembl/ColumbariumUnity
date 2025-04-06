@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: c3d5516ab467678438bf1a8037259572
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 312038
+  packageName: Sound Shapes - Dynamic Audio Areas
+  packageVersion: 1.0
+  assetPath: Assets/TelePresent/Sound Shapes/Scripts/SoundShapes_CachedMeshData.cs
+  uploadId: 743890

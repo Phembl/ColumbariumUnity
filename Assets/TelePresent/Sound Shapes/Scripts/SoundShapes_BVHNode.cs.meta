@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 0a5a9529bb7b7c74cbe3d65a209b1ce8
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 312038
+  packageName: Sound Shapes - Dynamic Audio Areas
+  packageVersion: 1.0
+  assetPath: Assets/TelePresent/Sound Shapes/Scripts/SoundShapes_BVHNode.cs
+  uploadId: 743890

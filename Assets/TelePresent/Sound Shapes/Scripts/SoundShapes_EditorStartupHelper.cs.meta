@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: c4335b1637118724d8e339e0924cbb8b
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 312038
+  packageName: Sound Shapes - Dynamic Audio Areas
+  packageVersion: 1.0
+  assetPath: Assets/TelePresent/Sound Shapes/Scripts/SoundShapes_EditorStartupHelper.cs
+  uploadId: 743890

@@ -3,7 +3,7 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using UnityEngine.InputSystem;
+using Unity.VisualScripting;
 
 /// <summary>
 /// Manages story interactions in the game world.
@@ -91,8 +91,15 @@ public class StoryManager : MonoBehaviour
     [Tooltip("GameObject containing Chapter 7 content")]
     public GameObject chapter7;
     
+    // Specific Story Variables
     [Header("Specific Story Elements")]
-    public GameObject chapter3Blocker;
+    [SerializeField] private TextMeshPro taubenschlagDoorText;
+    [SerializeField] private GameObject chapter3Blocker;
+    
+    [SerializeField] private int gardenStoryCount = 5;
+    [SerializeField] private int taubenschlagStoryCount = 7;
+    [SerializeField] private int pidgeonStoryCount = 6;
+    [SerializeField] private int tricksterStoryCount = 4;
     
     // Internal references
     private GameObject[] chapters;
@@ -105,6 +112,7 @@ public class StoryManager : MonoBehaviour
     private AudioClip storyAudio;
     private GameObject storyWorldText;
     private float storyVolume;
+    private int currentChapter;
     
     // Save cursor state to restore later
     private CursorLockMode previousCursorLockState;
@@ -185,8 +193,9 @@ public class StoryManager : MonoBehaviour
         // Find the PlayerStart object in the active chapter
         Transform playerStart = activeChapter.transform.Find("PlayerStart");
         
+        currentChapter = selectedChapterIndex;
+        
         // Set Start Movement Mode
-            
         if (selectedChapterIndex == 4)
         {
             playerController.SetMovementMode(MultiModePlayerController.MovementMode.Bird);
@@ -314,8 +323,10 @@ public class StoryManager : MonoBehaviour
         
         // Wait for audio to finish
         yield return new WaitForSeconds(storyAudio.length);
+        
+        bool specialbreak = CheckSpecialStoryMoment();
+        if (!specialbreak) FinalizeStoryMoment(); // Finalizes Story if there is no special story part
 
-        FinalizeStoryMoment();
     }
     
 
@@ -337,9 +348,12 @@ public class StoryManager : MonoBehaviour
         
             // Fade out Audio
             audioSource.DOFade(0f, audioFadeDuration)
-                .OnComplete(() => {
+                .OnComplete(() =>
+                {
+
+                    bool specialbreak = CheckSpecialStoryMoment();
+                    if (!specialbreak) FinalizeStoryMoment(); // Finalizes Story if there is no special story part
                     
-                    FinalizeStoryMoment();
                 });
         }
     }
@@ -374,6 +388,79 @@ public class StoryManager : MonoBehaviour
                 isStoryPlaying = false;
             });
     }
+
+    private bool CheckSpecialStoryMoment()
+    {
+        if (currentChapter == 3 && internalChapterProgress == taubenschlagStoryCount)
+        {
+            internalChapterProgress = 0;
+            currentChapter = 4;
+            
+            // Fade out text
+            storyText.DOFade(0f, fadeScreenDuration);
+            blackScreenPanel.DOFade(1f, 1f)
+                .OnComplete(() => {
+                                
+                chapters[3].SetActive(false);
+                chapters[4].SetActive(true);
+                
+                playerController.SetMovementMode(MultiModePlayerController.MovementMode.Bird);
+                Transform playerStart = chapters[4].transform.Find("PlayerStart");
+                // Position the player at the PlayerStart position
+                player.transform.position = playerStart.position;
+                
+                // Directly copy the rotation from PlayerStart to player
+                player.transform.rotation = playerStart.rotation;
+
+                
+                // Lock input briefly to prevent immediate override
+                playerController.LockInput();
+                // Schedule unlock after a short delay
+                StartCoroutine(DelayedUnlock(playerController));
+                
+                FinalizeStoryMoment();
+                
+
+            });
+            
+            return true;
+        }
+        if (currentChapter == 4 && internalChapterProgress == pidgeonStoryCount)
+        {
+            internalChapterProgress = 0;
+            currentChapter = 5;
+            
+            // Fade out text
+            storyText.DOFade(0f, fadeScreenDuration);
+            blackScreenPanel.DOFade(1f, 1f)
+                .OnComplete(() => {
+                                
+                    chapters[4].SetActive(false);
+                    chapters[5].SetActive(true);
+                    
+                    playerController.SetMovementMode(MultiModePlayerController.MovementMode.Bug);
+                    Transform playerStart = chapters[5].transform.Find("PlayerStart");
+                    // Position the player at the PlayerStart position
+                    player.transform.position = playerStart.position;
+                
+                    // Directly copy the rotation from PlayerStart to player
+                    player.transform.rotation = playerStart.rotation;
+
+                
+                    // Lock input briefly to prevent immediate override
+                    playerController.LockInput();
+                    // Schedule unlock after a short delay
+                    StartCoroutine(DelayedUnlock(playerController));
+                
+                    FinalizeStoryMoment();
+                });
+            
+            return true;
+        }
+            
+        
+        return false;
+    }
     
     /// <summary>
     /// Resets all UI elements to their default state
@@ -406,21 +493,46 @@ public class StoryManager : MonoBehaviour
             case 0:
                 chapters[1].SetActive(false);
                 chapters[2].SetActive(true);
+                currentChapter = 2;
                 break;
             case 1:
-                internalChapterProgress++;
-                if (internalChapterProgress == 3)
+                if (internalChapterProgress < gardenStoryCount)
+                {
+                    internalChapterProgress++;
+                    taubenschlagDoorText.text = $"{gardenStoryCount - internalChapterProgress} Scans fehlen.";
+                }
+                else if (internalChapterProgress == gardenStoryCount)
                 {
                     Debug.Log("Taubenschlag unlocked");
                     chapter3Blocker.SetActive(false);
-                }
+                    internalChapterProgress = 0;
+                    taubenschlagDoorText.text = "";
+                }    
+                
                 break;
             case 2:
                 {
+                    // Inside Taubenschlag
                     chapters[2].SetActive(false);
                     chapters[3].SetActive(true);
+                    currentChapter = 3;
                     break;
                 }
+            case 3:
+                {
+                    if (internalChapterProgress < taubenschlagStoryCount) internalChapterProgress++;
+                    break;
+                }
+            case 4:
+                {
+                    if (internalChapterProgress < pidgeonStoryCount) internalChapterProgress++;
+                    break;
+                }
+            case 5:
+            {
+                if (internalChapterProgress < tricksterStoryCount) internalChapterProgress++;
+                break;
+            }
         }
     }
 }
