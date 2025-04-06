@@ -18,16 +18,14 @@ public class StoryObject : MonoBehaviour
 
     [Tooltip("Can this story object be triggered multiple times?")]
     [SerializeField] private bool canTriggerMultipleTimes = false;
-
-    [Header("Visual Indicator (Optional)")]
-    [Tooltip("Visual effect to show this is interactable (optional)")]
-    [SerializeField] private GameObject visualIndicator;
+    
     
     [Tooltip("Should the object be destroyed after being triggered?")]
     [SerializeField] private bool destroyAfterTrigger = false;
 
     private GameObject activeModel;
     private GameObject inactiveModel;
+    private GameObject worldText;
 
     // Track if this story has been triggered
     private bool hasBeenTriggered = false;
@@ -36,41 +34,21 @@ public class StoryObject : MonoBehaviour
 
     private void Start()
     {
-        // Set up the visual indicator if assigned
-        if (visualIndicator != null)
-        {
-            visualIndicator.SetActive(true);
-        }
-
-        // Make sure this object has a collider
-        Collider objCollider = GetComponent<Collider>();
-        if (objCollider == null)
-        {
-            Debug.LogWarning($"StoryObject '{gameObject.name}' has no collider. Adding a BoxCollider.");
-            gameObject.AddComponent<BoxCollider>();
-        }
-
-        // Ensure the collider is a trigger
-        objCollider = GetComponent<Collider>();
-        if (objCollider != null && !objCollider.isTrigger)
-        {
-            objCollider.isTrigger = true;
-        }
         
+        // Setup Models
         Transform childTransform = transform.Find("Active");
         activeModel = childTransform?.gameObject;
+        if (activeModel != null) activeModel.SetActive(true);
+        
         childTransform = transform.Find("Inactive");
         inactiveModel = childTransform?.gameObject;
-
-        if (activeModel == null || inactiveModel == null)
-        {
-            Debug.LogWarning("No models found.");
-        }
-        else
-        {
-            activeModel.SetActive(true);
-            inactiveModel.SetActive(false);
-        }
+        if (inactiveModel != null) inactiveModel.SetActive(false);
+        
+        // Setup Worldtext
+        childTransform = transform.Find("Worldtext");
+        worldText = childTransform?.gameObject;
+        if (worldText != null) worldText.SetActive(false);
+        
             
     }
 
@@ -94,21 +72,9 @@ public class StoryObject : MonoBehaviour
         // Mark as triggered
         hasBeenTriggered = true;
 
-        // Disable visual indicator if present
-        if (visualIndicator != null)
-        {
-            visualIndicator.SetActive(false);
-        }
-
         // Send story content to the StoryManager
-        if (StoryManager.Instance != null)
-        {
-            StoryManager.Instance.TriggerStoryMoment(storyText, narrationAudio);
-        }
-        else
-        {
-            Debug.LogError("StoryManager not found in the scene. Make sure it exists before any StoryObjects are triggered.");
-        }
+        StoryManager.Instance.TriggerStoryMoment(storyText, narrationAudio, worldText);
+
         
         activeModel.SetActive(false);
         inactiveModel.SetActive(true);

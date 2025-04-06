@@ -1,4 +1,5 @@
 using System.Collections;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -38,9 +39,7 @@ public class StoryManager : MonoBehaviour
     
     [Header("Transition Settings")]
     [Tooltip("Duration of screen fade transitions")]
-    [SerializeField] private float fadeScreenDuration = 0.5f;
-    [Tooltip("Duration of text fade transitions")]
-    [SerializeField] private float fadeTextDuration = 0.8f;
+    [SerializeField] private float fadeScreenDuration = 0.8f;
     [Tooltip("Opacity of the black screen (0-1)")]
     [Range(0f, 1f)]
     [SerializeField] private float blackScreenOpacity = 0.9f;
@@ -102,6 +101,10 @@ public class StoryManager : MonoBehaviour
     // Internal state tracking
     private bool isStoryPlaying = false;
     private Coroutine currentStoryCoroutine;
+    private string storyContent;
+    private AudioClip storyAudio;
+    private GameObject storyWorldText;
+    private float storyVolume;
     
     // Save cursor state to restore later
     private CursorLockMode previousCursorLockState;
@@ -159,7 +162,7 @@ public class StoryManager : MonoBehaviour
         InitializeGame();
     }
     
-       /// <summary>
+    /// <summary>
     /// Initializes the game by activating the selected chapter and positioning the player
     /// </summary>
     private void InitializeGame()
@@ -246,7 +249,7 @@ public class StoryManager : MonoBehaviour
     /// </summary>
     /// <param name="storyContent">The text to display</param>
     /// <param name="audioClip">The audio clip to play</param>
-    public void TriggerStoryMoment(string storyContent, AudioClip audioClip)
+    public void TriggerStoryMoment(string newStoryContent, AudioClip newStoryAudio, GameObject newStoryWorldText)
     {
         // If another story is already playing, stop it
         if (isStoryPlaying)
@@ -259,129 +262,119 @@ public class StoryManager : MonoBehaviour
             // Reset UI elements
             ResetStoryUI();
         }
+        
+        // Prepare new story moment
+        storyContent = newStoryContent;
+        storyAudio = newStoryAudio;
 
+        if (newStoryWorldText != null)
+        {
+            storyWorldText = newStoryWorldText;
+        }
+        else
+        {
+            storyWorldText = null;
+        }
+        
+        
         // Start new story sequence
-        currentStoryCoroutine = StartCoroutine(PlayStorySequence(storyContent, audioClip));
+        currentStoryCoroutine = StartCoroutine(PlayStorySequence());
     }
 
     /// <summary>
     /// Coroutine that handles the entire story sequence including UI transitions,
     /// audio playback, and player control
     /// </summary>
-    private IEnumerator PlayStorySequence(string storyContent, AudioClip audioClip)
+    private IEnumerator PlayStorySequence()
     {
         isStoryPlaying = true;
 
-        // 1. Disable player input
-        DisablePlayerInput();
+        // Disable player input
+        playerController.LockInput();
 
-        // 2. Activate UI elements
+        // Activate UI elements
         blackScreenPanel.gameObject.SetActive(true);
         storyText.gameObject.SetActive(true);
         storyText.text = storyContent;
 
-        // 3. Fade in black screen
-        yield return FadeScreen(0f, blackScreenOpacity);
+        storyVolume = audioSource.volume;
 
-        // 4. Fade in text
-        yield return FadeText(0f, 1f);
+        // Fade in black screen
+        blackScreenPanel.DOFade(blackScreenOpacity, fadeScreenDuration);
+        
+        // Fade in text
+        storyText.DOFade(1f, fadeScreenDuration);
+        
+        // Wait for Fade
+        yield return new WaitForSeconds(fadeScreenDuration);
+        
+        // Play Audio
+        audioSource.clip = storyAudio;
+        audioSource.Play();
+        
+        // Wait for audio to finish
+        yield return new WaitForSeconds(storyAudio.length);
 
-        // 5. Play audio
-        if (audioClip != null)
-        {
-            audioSource.clip = audioClip;
-            audioSource.Play();
-
-            // Wait for audio to finish
-            yield return new WaitForSeconds(audioClip.length);
-        }
-        else
-        {
-            // If no audio, wait for a default reading time based on text length
-            float readTime = Mathf.Max(5.0f, storyContent.Length * 0.05f); // Approx 20 chars per second
-            yield return new WaitForSeconds(readTime);
-        }
-
-        // 6. Fade out text
-        yield return FadeText(1f, 0f);
-
-        // 7. Fade out black screen
-        yield return FadeScreen(blackScreenOpacity, 0f);
-
-        // 8. Deactivate UI elements
-        blackScreenPanel.gameObject.SetActive(false);
-        storyText.gameObject.SetActive(false);
-
-        // 9. Re-enable player input
-        EnablePlayerInput();
-
-        isStoryPlaying = false;
+        FinalizeStoryMoment();
     }
+    
 
     /// <summary>
-    /// Fades the black screen panel between alpha values
+    /// Force stops the current story moment with smooth transitions (for skipping)
     /// </summary>
-    private IEnumerator FadeScreen(float startAlpha, float endAlpha)
+    public void StopStoryMoment()
     {
-        float elapsedTime = 0f;
-        Color panelColor = blackScreenPanel.color;
-
-        while (elapsedTime < fadeScreenDuration)
+        if (isStoryPlaying && currentStoryCoroutine != null)
         {
-            elapsedTime += Time.deltaTime;
-            float normalizedTime = elapsedTime / fadeScreenDuration;
+            // Stop the main story coroutine
+            StopCoroutine(currentStoryCoroutine);
             
-            panelColor.a = Mathf.Lerp(startAlpha, endAlpha, normalizedTime);
-            blackScreenPanel.color = panelColor;
-            
-            yield return null;
+            // Duration for audio fade out
+            float audioFadeDuration = 0.8f;
+        
+            // Remember original audio volume for later restoration
+            float originalVolume = audioSource.volume;
+        
+            // Fade out Audio
+            audioSource.DOFade(0f, audioFadeDuration)
+                .OnComplete(() => {
+                    
+                    FinalizeStoryMoment();
+                });
         }
-
-        // Ensure we end at the exact target alpha
-        panelColor.a = endAlpha;
-        blackScreenPanel.color = panelColor;
     }
 
-    /// <summary>
-    /// Fades the story text between alpha values
-    /// </summary>
-    private IEnumerator FadeText(float startAlpha, float endAlpha)
+    private void FinalizeStoryMoment()
     {
-        float elapsedTime = 0f;
-        Color textColor = storyText.color;
+        // Fade out text
+        storyText.DOFade(0f, fadeScreenDuration);
 
-        while (elapsedTime < fadeTextDuration)
-        {
-            elapsedTime += Time.deltaTime;
-            float normalizedTime = elapsedTime / fadeTextDuration;
-            
-            textColor.a = Mathf.Lerp(startAlpha, endAlpha, normalizedTime);
-            storyText.color = textColor;
-            
-            yield return null;
-        }
+        // Fade out black screen
+        blackScreenPanel.DOFade(blackScreenOpacity, fadeScreenDuration)
+            .OnComplete(() => {
+                
+                // Deactivate UI elements
+                blackScreenPanel.gameObject.SetActive(false);
+                storyText.gameObject.SetActive(false);
+                
+                // Check WorldText
+                if (storyWorldText != null)
+                {
+                    storyWorldText.SetActive(true);
+                }
+                
+                // Re-enable player input
+                playerController.UnlockInput();
+                
+                // Reset UI elements
+                ResetStoryUI();
 
-        // Ensure we end at the exact target alpha
-        textColor.a = endAlpha;
-        storyText.color = textColor;
+                audioSource.volume = storyVolume;
+                
+                isStoryPlaying = false;
+            });
     }
-
-    /// <summary>
-    /// Disables player input to prevent movement during story moments
-    /// </summary>
-    private void DisablePlayerInput()
-    {
-        playerController.LockInput();
-    }
-
-    /// <summary>
-    /// Re-enables player input after the story moment has concluded
-    /// </summary>
-    private void EnablePlayerInput()
-    {
-        playerController.UnlockInput();
-    }
-
+    
     /// <summary>
     /// Resets all UI elements to their default state
     /// </summary>
@@ -404,75 +397,6 @@ public class StoryManager : MonoBehaviour
         {
             audioSource.Stop();
         }
-    }
-
-    /// <summary>
-    /// Force stops the current story moment with smooth transitions (for skipping)
-    /// </summary>
-    public void StopStoryMoment()
-    {
-        if (isStoryPlaying && currentStoryCoroutine != null)
-        {
-            // Stop the main story coroutine
-            StopCoroutine(currentStoryCoroutine);
-            
-            // Start a new coroutine for smooth exit
-            StartCoroutine(SmoothSkipSequence());
-        }
-    }
-    
-    /// <summary>
-    /// Smoothly skips the current story with proper fade transitions
-    /// </summary>
-    private IEnumerator SmoothSkipSequence()
-    {
-        // Duration for audio fade out
-        float audioFadeDuration = 0.5f;
-        
-        // Remember original audio volume for later restoration
-        float originalVolume = audioSource.volume;
-        
-        // If audio is playing, fade it out
-        if (isStoryPlaying)
-        {
-            // Reset story state
-            isStoryPlaying = false;
-            
-            float elapsedTime = 0f;
-            
-            while (elapsedTime < audioFadeDuration)
-            {
-                elapsedTime += Time.deltaTime;
-                float normalizedTime = elapsedTime / audioFadeDuration;
-                
-                // Fade audio volume
-                audioSource.volume = Mathf.Lerp(originalVolume, 0f, normalizedTime);
-                
-                yield return null;
-            }
-            
-            // Ensure volume is zero
-            audioSource.volume = 0f;
-            audioSource.Stop();
-            
-            // Restore original volume for next time
-            audioSource.volume = originalVolume;
-        }
-        
-        // Fade out text (reuse existing method)
-        yield return FadeText(storyText.color.a, 0f);
-        
-        // Fade out black screen (reuse existing method)
-        yield return FadeScreen(blackScreenPanel.color.a, 0f);
-        
-        // Deactivate UI elements
-        blackScreenPanel.gameObject.SetActive(false);
-        storyText.gameObject.SetActive(false);
-        
-        // Re-enable player input
-        EnablePlayerInput();
-        
-
     }
     
     public void ContinueStory(int storyID)
