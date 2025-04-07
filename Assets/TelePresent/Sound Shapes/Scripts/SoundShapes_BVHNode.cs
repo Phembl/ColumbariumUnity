@@ -192,7 +192,7 @@ namespace TelePresent.SoundShapes
         }
 
         /// <summary>
-        /// Implements the Möller–Trumbore algorithm to test ray-triangle intersection.
+        /// Implements the MÃ¶llerâ€“Trumbore algorithm to test ray-triangle intersection.
         /// </summary>
         private static bool RayIntersectsTriangle(Ray ray, Vector3 v0, Vector3 v1, Vector3 v2, out Vector3 intersectionPoint)
         {
