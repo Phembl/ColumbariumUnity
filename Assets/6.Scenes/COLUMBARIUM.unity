@@ -425,7 +425,7 @@ MonoBehaviour:
   fadeScreenDuration: 0.5
   blackScreenOpacity: 0.9
   audioSource: {fileID: 1673520827}
-  startingChapter: 2
+  startingChapter: 1
   prolog: {fileID: 2015710193}
   chapter1: {fileID: 187926690}
   chapter2: {fileID: 1893313682}
@@ -1389,6 +1389,55 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 7738344707823850222, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
   m_PrefabInstance: {fileID: 1012625443}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &227519219
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 227519221}
+  - component: {fileID: 227519220}
+  m_Layer: 7
+  m_Name: Garden_1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &227519220
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 227519219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b5900aba1767854aa98592c99eb8b8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _sourceData: {fileID: 7239065423396753691, guid: 0da49865d543afd4ab1150ab6e1a2b9b, type: 3}
+  _pointTint: {r: 0.7987421, g: 0.7987421, b: 0.7987421, a: 1}
+  _pointSize: 0.015
+  _pointShader: {fileID: 4800000, guid: 1baec256dca7c1642b87d05510e75a3f, type: 3}
+  _diskShader: {fileID: 4800000, guid: 7ebf1f15e5b03014d92704caa6c97e2e, type: 3}
+--- !u!4 &227519221
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 227519219}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.510687, y: 0.47932282, z: 0.48843324, w: 0.52046263}
+  m_LocalPosition: {x: 9.2, y: -1.2, z: 23.4}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: -88.917, y: 0.201, z: 86.166}
 --- !u!1001 &233739882
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1987,12 +2036,20 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1714674155}
     m_Modifications:
+    - target: {fileID: 2743220679527468708, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: MaxDistance
+      value: 20
+      objectReference: {fileID: 0}
     - target: {fileID: 3855294343155288273, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3866832174502101564, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5114298124278996232, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: newMode
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5114298124278996232, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
@@ -2009,6 +2066,10 @@ PrefabInstance:
     - target: {fileID: 7738344707823850222, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_Name
       value: StoryPoint_2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8164951358576544485, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: m_Radius
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 8224009723022419143, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2484,6 +2545,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1714674155}
     m_Modifications:
+    - target: {fileID: 2743220679527468708, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: MaxDistance
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 5114298124278996232, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: newMode
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5114298124278996232, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: storyText
       value: "Jedenfalls hab ich mal zu Eden geh\xF6rt. Ein Garten, wie der da vorne
@@ -4649,6 +4718,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1714674155}
     m_Modifications:
+    - target: {fileID: 2743220679527468708, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: MaxDistance
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 5114298124278996232, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: newMode
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5114298124278996232, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: storyText
       value: "Dieser Garten hier befindet sich in Norfolk, im Osten Englands, nicht
@@ -4861,6 +4938,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1714674155}
     m_Modifications:
+    - target: {fileID: 2743220679527468708, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: MaxDistance
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 5114298124278996232, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: newMode
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5114298124278996232, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: storyText
       value: "Folg mir, wenn du m\xF6chtest."
@@ -5533,7 +5618,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4909270611760220341, guid: ef1d02fe71d5663409e5ccdc7b55b631, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -926.3
+      value: -916
       objectReference: {fileID: 0}
     - target: {fileID: 4909270611760220341, guid: ef1d02fe71d5663409e5ccdc7b55b631, type: 3}
       propertyPath: m_LocalPosition.y
@@ -6180,6 +6265,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1825126524}
     m_Modifications:
+    - target: {fileID: 5114298124278996232, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: newMode
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5114298124278996232, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: storyText
       value: "\xBBYou can\u2019t plant new apple trees in the soil of old apple trees
@@ -9333,6 +9422,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1714674155}
     m_Modifications:
+    - target: {fileID: 2743220679527468708, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: MaxDistance
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 5114298124278996232, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: newMode
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5114298124278996232, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: storyText
       value: "Fr\xFCher geh\xF6rte das Estate diversen M\xE4nnern, die ihre Besitzt\xFCmer
@@ -12014,7 +12111,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6585114388865157965, guid: ef1d02fe71d5663409e5ccdc7b55b631, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6733901534774506993, guid: ef1d02fe71d5663409e5ccdc7b55b631, type: 3}
       propertyPath: m_LocalPosition.x
@@ -12221,6 +12318,10 @@ PrefabInstance:
       propertyPath: m_RenderingPath
       value: -1
       objectReference: {fileID: 0}
+    - target: {fileID: 7072395492162046983, guid: b8075efc0d5daa841a055ad3b3c0321a, type: 3}
+      propertyPath: m_Volume
+      value: 0.818
+      objectReference: {fileID: 0}
     - target: {fileID: 7074479460208672235, guid: b8075efc0d5daa841a055ad3b3c0321a, type: 3}
       propertyPath: m_Name
       value: Player
@@ -12300,12 +12401,12 @@ GameObject:
   - component: {fileID: 8980549145107294483}
   - component: {fileID: 8980549145107294482}
   m_Layer: 7
-  m_Name: Garden
+  m_Name: Garden (PointCloudMesh)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!33 &8980549145107294482
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -12373,6 +12474,7 @@ SceneRoots:
   - {fileID: 176710411}
   - {fileID: 8508667768660826624}
   - {fileID: 8859148465579066085}
+  - {fileID: 227519221}
   - {fileID: 668964658}
   - {fileID: 1937254429}
   - {fileID: 4797955073658290833}

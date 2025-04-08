@@ -1,3 +1,5 @@
+using DG.Tweening;
+using TMPro;
 using UnityEngine;
 
 /// <summary>
@@ -16,16 +18,14 @@ public class StoryObject : MonoBehaviour
     [Tooltip("Tag of the object that can trigger this story (usually 'Player')")]
     private string playerTag = "Player";
 
-    [Tooltip("Can this story object be triggered multiple times?")]
-    [SerializeField] private bool canTriggerMultipleTimes = false;
-    
-    
-    [Tooltip("Should the object be destroyed after being triggered?")]
-    [SerializeField] private bool destroyAfterTrigger = false;
+    [SerializeField] private bool newMode;
 
     private GameObject activeModel;
     private GameObject inactiveModel;
     private GameObject worldText;
+    private AudioSource narrationAudioSource;
+    private TextMeshPro worldTextMesh;
+    private Color textColor;
 
     // Track if this story has been triggered
     private bool hasBeenTriggered = false;
@@ -47,9 +47,18 @@ public class StoryObject : MonoBehaviour
         // Setup Worldtext
         childTransform = transform.Find("Worldtext");
         worldText = childTransform?.gameObject;
-        if (worldText != null) worldText.SetActive(false);
-        
-            
+        if (worldText != null)
+        {
+            worldTextMesh = worldText.GetComponent<TextMeshPro>();
+            textColor = worldTextMesh.color;
+            textColor.a = 0;
+            worldTextMesh.color = textColor;
+        }
+  
+         
+        childTransform = transform.Find("AudioSource");
+        narrationAudioSource  = childTransform?.gameObject.GetComponent<AudioSource>();
+        if (narrationAudioSource != null) narrationAudioSource.clip = narrationAudio;
     }
 
     private void OnTriggerEnter(Collider other)
@@ -66,24 +75,33 @@ public class StoryObject : MonoBehaviour
     private void TriggerStoryMoment()
     {
         // Check if object can be triggered again
-        if (hasBeenTriggered && !canTriggerMultipleTimes)
+        if (hasBeenTriggered)
             return;
 
         // Mark as triggered
         hasBeenTriggered = true;
 
-        // Send story content to the StoryManager
-        StoryManager.Instance.TriggerStoryMoment(storyText, narrationAudio, worldText);
+        if (newMode)
+        {
+            narrationAudioSource.Play();
+            if (worldText != null)
+            {
+                worldTextMesh.DOFade(1f, 20f);
+
+            }
+
+        }
+        else
+        {
+            // Send story content to the StoryManager
+            StoryManager.Instance.TriggerStoryMoment(storyText, narrationAudio, worldText);
+        }
+
 
         
         activeModel.SetActive(false);
         inactiveModel.SetActive(true);
-
-        // Destroy the object if configured to do so
-        if (destroyAfterTrigger)
-        {
-            Destroy(gameObject);
-        }
+        
     }
     
 
