@@ -8130,7 +8130,7 @@ MeshCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 0
+  m_Enabled: 1
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
@@ -9942,7 +9942,7 @@ PrefabInstance:
     - target: {fileID: -7511558181221131132, guid: d21a6b82fd5a95a49a6ab2845277061b, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: fb20ddb1db6db0743a384825e075ce03, type: 2}
+      objectReference: {fileID: 2100000, guid: ec83f387fa454a44db23d32057cc1e13, type: 2}
     - target: {fileID: 919132149155446097, guid: d21a6b82fd5a95a49a6ab2845277061b, type: 3}
       propertyPath: m_Name
       value: Taubenschlag_Model
