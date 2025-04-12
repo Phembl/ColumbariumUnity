@@ -15,17 +15,19 @@ public class StoryObject : MonoBehaviour
     [SerializeField] private AudioClip narrationAudio;
 
     [Header("Interaction Settings")]
-    [Tooltip("Tag of the object that can trigger this story (usually 'Player')")]
-    private string playerTag = "Player";
+    [SerializeField] private Color inactiveColor = new Color(0.75f, 0.75f, 0.75f, 1f); //Target Inactive Color;
+    [SerializeField] private float inactiveFadeTime = 1f;
+    
 
     [SerializeField] private bool newMode;
 
     private GameObject activeModel;
-    private GameObject inactiveModel;
     private GameObject worldText;
     private AudioSource narrationAudioSource;
     private TextMeshPro worldTextMesh;
     private Color textColor;
+    private string playerTag = "Player"; // Tag to enter
+
 
     // Track if this story has been triggered
     private bool hasBeenTriggered = false;
@@ -36,13 +38,9 @@ public class StoryObject : MonoBehaviour
     {
         
         // Setup Models
-        Transform childTransform = transform.Find("Active");
+        Transform childTransform = transform.Find("Object");
         activeModel = childTransform?.gameObject;
         if (activeModel != null) activeModel.SetActive(true);
-        
-        childTransform = transform.Find("Inactive");
-        inactiveModel = childTransform?.gameObject;
-        if (inactiveModel != null) inactiveModel.SetActive(false);
         
         // Setup Worldtext
         childTransform = transform.Find("Worldtext");
@@ -84,10 +82,32 @@ public class StoryObject : MonoBehaviour
         if (newMode)
         {
             narrationAudioSource.Play();
+            
+            // Fade Color
+            MeshRenderer modelRenderer = activeModel.GetComponent<MeshRenderer>();
+            
+            if (modelRenderer != null)
+            {
+                Material modelMaterial = modelRenderer.material; // Get instance
+                Color startColor = modelMaterial.GetColor("_Tint"); // Get current color BEFORE tween
+                Debug.Log($"Starting tween on {activeModel.name}. From: {startColor} To: {inactiveColor}");
+
+                // Kill any previous tweens on this specific property/material instance
+                DOTween.Kill(modelMaterial, true); // true targets specific properties like _Tint
+
+                modelMaterial.DOColor(inactiveColor, "_Tint", inactiveFadeTime)
+                    .SetEase(Ease.Linear); // Use linear ease for predictable testing
+                
+            }
+            else
+            {
+                Debug.LogWarning("No model renderer found on " + activeModel);
+            }
+            // Fade in World Text
             if (worldText != null)
             {
                 worldTextMesh.DOFade(1f, 20f);
-
+                
             }
 
         }
@@ -99,8 +119,8 @@ public class StoryObject : MonoBehaviour
 
 
         
-        activeModel.SetActive(false);
-        inactiveModel.SetActive(true);
+       //activeModel.SetActive(false);
+        //inactiveModel.SetActive(true);
         
     }
     
