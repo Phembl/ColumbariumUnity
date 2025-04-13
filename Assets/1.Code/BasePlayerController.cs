@@ -42,7 +42,7 @@ public abstract class BasePlayerController : MonoBehaviour
     protected InputAction skipAction;
 
     // Constants
-    protected const float GROUND_CHECK_DISTANCE = 0.1f;
+    protected const float GROUND_CHECK_DISTANCE = 0.3f;
 
     protected virtual void Awake()
     {
@@ -104,7 +104,7 @@ public abstract class BasePlayerController : MonoBehaviour
     {
         // Get input values
         moveInput = moveAction.ReadValue<Vector2>();
-        lookInput = lookAction.ReadValue<Vector2>() * lookSensitivity;
+        lookInput = lookAction.ReadValue<Vector2>() * (lookSensitivity / 10);
 
         // Handle camera rotation
         if (!isInputLocked)

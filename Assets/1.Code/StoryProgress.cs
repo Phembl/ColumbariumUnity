@@ -3,7 +3,6 @@ using UnityEngine;
 public class StoryProgress : MonoBehaviour
 {
     
-    [Tooltip("The text to display during the story moment")]
     [SerializeField] private int storyID;
     
     // Track if this story has been triggered

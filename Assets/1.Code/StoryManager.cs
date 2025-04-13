@@ -32,10 +32,12 @@ public class StoryManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI storyText;
 
     [Header("Player References")]
-    [Tooltip("Reference to the player controller")]
-    [SerializeField] private MultiModePlayerController playerController;
-    [Tooltip("Reference to the player GameObject")]
-    public GameObject player;
+    [SerializeField] private GameObject human;
+    [SerializeField] private GameObject bird;
+    [SerializeField] private GameObject bug;
+    private BasePlayerController playerController;
+    
+    private GameObject player;
     
     [Header("Transition Settings")]
     [Tooltip("Duration of screen fade transitions")]
@@ -198,18 +200,25 @@ public class StoryManager : MonoBehaviour
         // Set Start Movement Mode
         if (selectedChapterIndex == 4)
         {
-            playerController.SetMovementMode(MultiModePlayerController.MovementMode.Bird);
+            //playerController.SetMovementMode(MultiModePlayerController.MovementMode.Bird);
+            SwitchPlayerController(bird);
         }
         else if (selectedChapterIndex == 5)
         {
-            playerController.SetMovementMode(MultiModePlayerController.MovementMode.Bug);
+            //playerController.SetMovementMode(MultiModePlayerController.MovementMode.Bug);
+            SwitchPlayerController(bug);
         }
         else
         {
-            playerController.SetMovementMode(MultiModePlayerController.MovementMode.Human);
+            //playerController.SetMovementMode(MultiModePlayerController.MovementMode.Human);
+            SwitchPlayerController(human);
         }
+
+        playerController = player.GetComponent<BasePlayerController>();
             
+        
         if (playerStart != null && player != null)
+            
         {
                 // Position the player at the PlayerStart position
                 player.transform.position = playerStart.position;
@@ -228,6 +237,9 @@ public class StoryManager : MonoBehaviour
         {
                 Debug.LogError($"PlayerStart not found in Chapter {selectedChapterIndex + 1} or Player reference is missing");
         }
+        
+        // Setup correct Text for missing Scans
+        taubenschlagDoorText.text = $"{gardenStoryCount} Scans fehlen.";
            
         
     }
@@ -235,7 +247,7 @@ public class StoryManager : MonoBehaviour
     /// <summary>
     /// Coroutine to unlock player input after a short delay
     /// </summary>
-    private IEnumerator DelayedUnlock(MultiModePlayerController controller)
+    private IEnumerator DelayedUnlock(BasePlayerController controller)
     {
         // Wait a short time to ensure rotation is applied
         yield return new WaitForSeconds(0.5f);
@@ -243,6 +255,19 @@ public class StoryManager : MonoBehaviour
         // Unlock player input
         controller.UnlockInput();
     }
+    
+    private void SwitchPlayerController(GameObject mode)
+    {
+        human.SetActive(false);
+        bird.SetActive(false);
+        bug.SetActive(false);
+        
+        player = mode;
+        player.SetActive(true);
+        playerController = player.GetComponent<BasePlayerController>();
+    }
+        
+   
     
     /// <summary>
     /// Public method to check if a story is currently playing
@@ -391,20 +416,22 @@ public class StoryManager : MonoBehaviour
 
     private bool CheckSpecialStoryMoment()
     {
+        // Switch to Bird Chapter
         if (currentChapter == 3 && internalChapterProgress == taubenschlagStoryCount)
         {
             internalChapterProgress = 0;
             currentChapter = 4;
             
             // Fade out text
-            storyText.DOFade(0f, fadeScreenDuration);
-            blackScreenPanel.DOFade(1f, 1f)
+            //storyText.DOFade(0f, fadeScreenDuration);
+            blackScreenPanel.gameObject.SetActive(true);
+            blackScreenPanel.DOFade(1f, 1.5f)
                 .OnComplete(() => {
                                 
                 chapters[3].SetActive(false);
                 chapters[4].SetActive(true);
                 
-                playerController.SetMovementMode(MultiModePlayerController.MovementMode.Bird);
+                SwitchPlayerController(bird);
                 Transform playerStart = chapters[4].transform.Find("PlayerStart");
                 // Position the player at the PlayerStart position
                 player.transform.position = playerStart.position;
@@ -425,20 +452,23 @@ public class StoryManager : MonoBehaviour
             
             return true;
         }
+        
+        // Switch to Bug Chapter
         if (currentChapter == 4 && internalChapterProgress == pidgeonStoryCount)
         {
             internalChapterProgress = 0;
             currentChapter = 5;
             
             // Fade out text
-            storyText.DOFade(0f, fadeScreenDuration);
-            blackScreenPanel.DOFade(1f, 1f)
+            //storyText.DOFade(0f, fadeScreenDuration);
+            blackScreenPanel.gameObject.SetActive(true);
+            blackScreenPanel.DOFade(1f, 1.5f)
                 .OnComplete(() => {
                                 
                     chapters[4].SetActive(false);
                     chapters[5].SetActive(true);
                     
-                    playerController.SetMovementMode(MultiModePlayerController.MovementMode.Bug);
+                    SwitchPlayerController(bug);
                     Transform playerStart = chapters[5].transform.Find("PlayerStart");
                     // Position the player at the PlayerStart position
                     player.transform.position = playerStart.position;
@@ -491,47 +521,56 @@ public class StoryManager : MonoBehaviour
         switch (storyID)
         {
             case 0:
+                //Entering Garden From Nichts
                 chapters[1].SetActive(false);
                 chapters[2].SetActive(true);
                 currentChapter = 2;
+                internalChapterProgress = 0;
                 break;
+            
             case 1:
+                // In the Garden
+                internalChapterProgress++;
                 if (internalChapterProgress < gardenStoryCount)
                 {
-                    internalChapterProgress++;
                     taubenschlagDoorText.text = $"{gardenStoryCount - internalChapterProgress} Scans fehlen.";
                 }
                 else if (internalChapterProgress == gardenStoryCount)
                 {
                     Debug.Log("Taubenschlag unlocked");
                     chapter3Blocker.SetActive(false);
-                    internalChapterProgress = 0;
                     taubenschlagDoorText.text = "";
                 }    
-                
                 break;
+            
             case 2:
-                {
-                    // Inside Taubenschlag
+                    // Entering Taubenschlag
                     chapters[2].SetActive(false);
                     chapters[3].SetActive(true);
                     currentChapter = 3;
+                    internalChapterProgress = 0;
                     break;
-                }
+                
             case 3:
-                {
+                
+                    // Inside Taubenschlag
                     if (internalChapterProgress < taubenschlagStoryCount) internalChapterProgress++;
+                    CheckSpecialStoryMoment();
                     break;
-                }
+                
             case 4:
-                {
+                
+                    // While Flying
                     if (internalChapterProgress < pidgeonStoryCount) internalChapterProgress++;
+                    CheckSpecialStoryMoment();
                     break;
-                }
+                
             case 5:
             {
-                if (internalChapterProgress < tricksterStoryCount) internalChapterProgress++;
-                break;
+                    // While Bug
+                    if (internalChapterProgress < tricksterStoryCount) internalChapterProgress++;
+                    CheckSpecialStoryMoment();
+                    break;
             }
         }
     }
