@@ -41,7 +41,7 @@ public class StoryManager : MonoBehaviour
     
     [Header("Transition Settings")]
     [Tooltip("Duration of screen fade transitions")]
-    [SerializeField] private float fadeScreenDuration = 0.8f;
+    [SerializeField] private float fadeScreenDuration = 1.5f;
     [Tooltip("Opacity of the black screen (0-1)")]
     [Range(0f, 1f)]
     [SerializeField] private float blackScreenOpacity = 0.9f;
@@ -97,6 +97,7 @@ public class StoryManager : MonoBehaviour
     [Header("Specific Story Elements")]
     [SerializeField] private TextMeshPro taubenschlagDoorText;
     [SerializeField] private GameObject chapter3Blocker;
+    [SerializeField] private AudioClip pidgeonQuestion;
     
     [SerializeField] private int gardenStoryCount = 5;
     [SerializeField] private int taubenschlagStoryCount = 7;
@@ -115,6 +116,7 @@ public class StoryManager : MonoBehaviour
     private GameObject storyWorldText;
     private float storyVolume;
     private int currentChapter;
+    private Coroutine specialCheck = null;
     
     // Save cursor state to restore later
     private CursorLockMode previousCursorLockState;
@@ -140,7 +142,6 @@ public class StoryManager : MonoBehaviour
             Color initialColor = blackScreenPanel.color;
             initialColor.a = 0f;
             blackScreenPanel.color = initialColor;
-            blackScreenPanel.gameObject.SetActive(false);
         }
 
         if (storyText != null)
@@ -149,7 +150,6 @@ public class StoryManager : MonoBehaviour
             Color initialColor = storyText.color;
             initialColor.a = 0f;
             storyText.color = initialColor;
-            storyText.gameObject.SetActive(false);
         }
         
         // Initialize array of chapter GameObjects for easier handling
@@ -168,81 +168,65 @@ public class StoryManager : MonoBehaviour
     
     private void Start()
     {
-        // Initialize the game with the selected chapter
-        InitializeGame();
-    }
-    
-    /// <summary>
-    /// Initializes the game by activating the selected chapter and positioning the player
-    /// </summary>
-    private void InitializeGame()
-    {
         // Get the index of the selected chapter
         int selectedChapterIndex = (int)startingChapter;
+        
+        SwitchChapter(selectedChapterIndex, true);
+        
+        // Setup correct Text for missing Scans
+        taubenschlagDoorText.text = $"{gardenStoryCount} Scans fehlen.";
+    }
+    
+   
+    
+    private void SwitchChapter(int chapter, bool newPlayerPosition)
+    {
+        currentChapter = chapter;
+        internalChapterProgress = 0;
+        Debug.Log($"Current Chapter: " + chapter);
         
         // Activate only the selected chapter, deactivate all others
         for (int i = 0; i < chapters.Length; i++)
         {
             if (chapters[i] != null)
             {
-                chapters[i].SetActive(i == selectedChapterIndex);
+                chapters[i].SetActive(i == chapter);
             }
         }
         
-        // Get the active chapter
-        GameObject activeChapter = chapters[selectedChapterIndex];
-        
-        // Find the PlayerStart object in the active chapter
-        Transform playerStart = activeChapter.transform.Find("PlayerStart");
-        
-        currentChapter = selectedChapterIndex;
-        Debug.Log($"Current Chapter: " +  currentChapter);
-        
         // Set Start Movement Mode
-        if (selectedChapterIndex == 4)
+        if (chapter == 4)
         {
-            //playerController.SetMovementMode(MultiModePlayerController.MovementMode.Bird);
             SwitchPlayerController(bird);
         }
-        else if (selectedChapterIndex == 5)
+        else if (chapter == 5)
         {
-            //playerController.SetMovementMode(MultiModePlayerController.MovementMode.Bug);
             SwitchPlayerController(bug);
         }
         else
         {
-            //playerController.SetMovementMode(MultiModePlayerController.MovementMode.Human);
             SwitchPlayerController(human);
         }
-
-        playerController = player.GetComponent<BasePlayerController>();
-            
         
-        if (playerStart != null && player != null)
+        if  (newPlayerPosition)
+        {
+            // Find the PlayerStart object in the active chapter
+            Transform playerStart = chapters[chapter].transform.Find("PlayerStart");
             
-        {
-                // Position the player at the PlayerStart position
-                player.transform.position = playerStart.position;
+            // Position the player at the PlayerStart position
+            player.transform.position = playerStart.position;
                 
-                // Directly copy the rotation from PlayerStart to player
-                player.transform.rotation = playerStart.rotation;
-
-                
-                // Lock input briefly to prevent immediate override
-                playerController.LockInput();
-                // Schedule unlock after a short delay
-                StartCoroutine(DelayedUnlock(playerController));
-                
-        }
-        else
-        {
-                Debug.LogError($"PlayerStart not found in Chapter {selectedChapterIndex + 1} or Player reference is missing");
+            // Directly copy the rotation from PlayerStart to player
+            player.transform.rotation = playerStart.rotation;
+            
+            // Lock input briefly to prevent immediate override
+            playerController.LockInput();
+            
+            // Schedule unlock after a short delay
+            StartCoroutine(DelayedUnlock(playerController));
         }
         
-        // Setup correct Text for missing Scans
-        taubenschlagDoorText.text = $"{gardenStoryCount} Scans fehlen.";
-           
-        
+
     }
        
     /// <summary>
@@ -415,46 +399,33 @@ public class StoryManager : MonoBehaviour
             });
     }
 
-    private void CheckSpecialStoryMoment()
+    private IEnumerator CheckSpecialStoryMoment()
     {
+        
+        
         Debug.Log("Checking for secial Story Moment");
         Debug.Log($"Internal story progess: " + internalChapterProgress);
         Debug.Log($"Current Chapter: " + currentChapter);
-
-        float fadeTime = 1.5f;
+   
         // Switch to Bird Chapter
         if (currentChapter == 3 && internalChapterProgress == taubenschlagStoryCount)
         {
-            internalChapterProgress = 0;
-            currentChapter = 4;
+            yield return new WaitForSeconds(3f);
+            blackScreenPanel.DOFade(1f, fadeScreenDuration);
+            yield return new WaitForSeconds(fadeScreenDuration);
             
-            // Fade out text
-            //storyText.DOFade(0f, fadeScreenDuration);
-            blackScreenPanel.gameObject.SetActive(true);
-            blackScreenPanel.DOFade(1f, fadeTime)
-                .OnComplete(() => {
-                                
-                chapters[3].SetActive(false);
-                chapters[4].SetActive(true);
-                
-                SwitchPlayerController(bird);
-                Transform playerStart = chapters[4].transform.Find("PlayerStart");
-                // Position the player at the PlayerStart position
-                player.transform.position = playerStart.position;
-                
-                // Directly copy the rotation from PlayerStart to player
-                player.transform.rotation = playerStart.rotation;
-
-                
-                // Lock input briefly to prevent immediate override
-                playerController.LockInput();
-                // Schedule unlock after a short delay
-                StartCoroutine(DelayedUnlock(playerController));
-                
-                FinalizeStoryMoment();
-                
-
-            });
+            //Write Question
+            storyText.text = "»Do you think they are individuals, like us?«";
+            storyText.DOFade(1f, 0.5f);
+            
+            AudioSource.PlayClipAtPoint(pidgeonQuestion, player.transform.position, 1f);
+            yield return new WaitForSeconds(pidgeonQuestion.length);
+            
+            storyText.DOFade(0f, 0.5f);
+            SwitchChapter(4, true);
+            yield return new WaitForSeconds(0.5f);
+            
+            blackScreenPanel.DOFade(0f, fadeScreenDuration);
             
         
         }
@@ -462,35 +433,12 @@ public class StoryManager : MonoBehaviour
         // Switch to Bug Chapter
         if (currentChapter == 4 && internalChapterProgress == pidgeonStoryCount)
         {
-            internalChapterProgress = 0;
-            currentChapter = 5;
-            
-            // Fade out text
-            //storyText.DOFade(0f, fadeScreenDuration);
-            blackScreenPanel.gameObject.SetActive(true);
-            blackScreenPanel.DOFade(1f, fadeTime)
-                .OnComplete(() => {
-                                
-                    chapters[4].SetActive(false);
-                    chapters[5].SetActive(true);
-                    
-                    SwitchPlayerController(bug);
-                    Transform playerStart = chapters[5].transform.Find("PlayerStart");
-                    // Position the player at the PlayerStart position
-                    player.transform.position = playerStart.position;
-                
-                    // Directly copy the rotation from PlayerStart to player
-                    player.transform.rotation = playerStart.rotation;
-
-                
-                    // Lock input briefly to prevent immediate override
-                    playerController.LockInput();
-                    // Schedule unlock after a short delay
-                    StartCoroutine(DelayedUnlock(playerController));
-                
-                    FinalizeStoryMoment();
-                });
-
+            yield return new WaitForSeconds(3f);
+            blackScreenPanel.DOFade(1f, fadeScreenDuration);
+            yield return new WaitForSeconds(fadeScreenDuration);
+            SwitchChapter(5, true);
+            yield return new WaitForSeconds(1f);
+            blackScreenPanel.DOFade(0f, fadeScreenDuration);
             
         }
 
@@ -502,7 +450,7 @@ public class StoryManager : MonoBehaviour
             currentChapter = 6;
 
             blackScreenPanel.gameObject.SetActive(true);
-            blackScreenPanel.DOFade(1f, fadeTime)
+            blackScreenPanel.DOFade(1f, fadeScreenDuration)
                 .OnComplete(() => {
 
                     chapters[5].SetActive(false);
@@ -520,7 +468,7 @@ public class StoryManager : MonoBehaviour
                 });
         }
 
-
+        specialCheck = null;
 
     }
     
@@ -554,10 +502,7 @@ public class StoryManager : MonoBehaviour
         {
             case 0:
                 //Entering Garden From Nichts
-                chapters[1].SetActive(false);
-                chapters[2].SetActive(true);
-                currentChapter = 2;
-                internalChapterProgress = 0;
+                SwitchChapter(2,false);
                 break;
             
             case 1:
@@ -587,21 +532,21 @@ public class StoryManager : MonoBehaviour
                 
                     // Inside Taubenschlag
                     if (internalChapterProgress < taubenschlagStoryCount) internalChapterProgress++;
-                    CheckSpecialStoryMoment();
+                    if (specialCheck == null) specialCheck = StartCoroutine(CheckSpecialStoryMoment());
                     break;
                 
             case 4:
                 
                     // While Flying
                     if (internalChapterProgress < pidgeonStoryCount) internalChapterProgress++;
-                    CheckSpecialStoryMoment();
+                    if (specialCheck == null) specialCheck = StartCoroutine(CheckSpecialStoryMoment());
                     break;
                 
             case 5:
             {
                     // While Bug
                     if (internalChapterProgress < tricksterStoryCount) internalChapterProgress++;
-                    CheckSpecialStoryMoment();
+                    if (specialCheck == null) specialCheck = StartCoroutine(CheckSpecialStoryMoment());
                     break;
             }
         }
