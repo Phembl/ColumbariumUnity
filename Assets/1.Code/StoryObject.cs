@@ -90,7 +90,6 @@ public class StoryObject : MonoBehaviour
             {
                 Material modelMaterial = modelRenderer.material; // Get instance
                 Color startColor = modelMaterial.GetColor("_Tint"); // Get current color BEFORE tween
-                Debug.Log($"Starting tween on {activeModel.name}. From: {startColor} To: {inactiveColor}");
 
                 // Kill any previous tweens on this specific property/material instance
                 DOTween.Kill(modelMaterial, true); // true targets specific properties like _Tint

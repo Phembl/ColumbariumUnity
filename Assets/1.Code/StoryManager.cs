@@ -196,6 +196,7 @@ public class StoryManager : MonoBehaviour
         Transform playerStart = activeChapter.transform.Find("PlayerStart");
         
         currentChapter = selectedChapterIndex;
+        Debug.Log($"Current Chapter: " +  currentChapter);
         
         // Set Start Movement Mode
         if (selectedChapterIndex == 4)
@@ -349,8 +350,8 @@ public class StoryManager : MonoBehaviour
         // Wait for audio to finish
         yield return new WaitForSeconds(storyAudio.length);
         
-        bool specialbreak = CheckSpecialStoryMoment();
-        if (!specialbreak) FinalizeStoryMoment(); // Finalizes Story if there is no special story part
+        //bool specialbreak = CheckSpecialStoryMoment();
+        //if (!specialbreak) FinalizeStoryMoment(); // Finalizes Story if there is no special story part
 
     }
     
@@ -376,8 +377,8 @@ public class StoryManager : MonoBehaviour
                 .OnComplete(() =>
                 {
 
-                    bool specialbreak = CheckSpecialStoryMoment();
-                    if (!specialbreak) FinalizeStoryMoment(); // Finalizes Story if there is no special story part
+                    //bool specialbreak = CheckSpecialStoryMoment();
+                    //if (!specialbreak) FinalizeStoryMoment(); // Finalizes Story if there is no special story part
                     
                 });
         }
@@ -414,8 +415,13 @@ public class StoryManager : MonoBehaviour
             });
     }
 
-    private bool CheckSpecialStoryMoment()
+    private void CheckSpecialStoryMoment()
     {
+        Debug.Log("Checking for secial Story Moment");
+        Debug.Log($"Internal story progess: " + internalChapterProgress);
+        Debug.Log($"Current Chapter: " + currentChapter);
+
+        float fadeTime = 1.5f;
         // Switch to Bird Chapter
         if (currentChapter == 3 && internalChapterProgress == taubenschlagStoryCount)
         {
@@ -425,7 +431,7 @@ public class StoryManager : MonoBehaviour
             // Fade out text
             //storyText.DOFade(0f, fadeScreenDuration);
             blackScreenPanel.gameObject.SetActive(true);
-            blackScreenPanel.DOFade(1f, 1.5f)
+            blackScreenPanel.DOFade(1f, fadeTime)
                 .OnComplete(() => {
                                 
                 chapters[3].SetActive(false);
@@ -450,7 +456,7 @@ public class StoryManager : MonoBehaviour
 
             });
             
-            return true;
+        
         }
         
         // Switch to Bug Chapter
@@ -462,7 +468,7 @@ public class StoryManager : MonoBehaviour
             // Fade out text
             //storyText.DOFade(0f, fadeScreenDuration);
             blackScreenPanel.gameObject.SetActive(true);
-            blackScreenPanel.DOFade(1f, 1.5f)
+            blackScreenPanel.DOFade(1f, fadeTime)
                 .OnComplete(() => {
                                 
                     chapters[4].SetActive(false);
@@ -484,12 +490,38 @@ public class StoryManager : MonoBehaviour
                 
                     FinalizeStoryMoment();
                 });
+
             
-            return true;
         }
-            
-        
-        return false;
+
+        // Switch to Embryo
+        if (currentChapter == 5 && internalChapterProgress == tricksterStoryCount)
+        {
+            Debug.Log("Switching to Embryo");
+            internalChapterProgress = 0;
+            currentChapter = 6;
+
+            blackScreenPanel.gameObject.SetActive(true);
+            blackScreenPanel.DOFade(1f, fadeTime)
+                .OnComplete(() => {
+
+                    chapters[5].SetActive(false);
+                    chapters[6].SetActive(true);
+
+                    // Deactivate all Controllers
+
+                    human.SetActive(false);
+                    bird.SetActive(false);
+                    bug.SetActive(false);
+
+
+
+                    FinalizeStoryMoment();
+                });
+        }
+
+
+
     }
     
     /// <summary>
