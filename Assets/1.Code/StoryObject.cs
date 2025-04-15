@@ -1,6 +1,7 @@
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
+using VInspector;
 
 /// <summary>
 /// Represents an object in the world that triggers a story moment when hit by the player.
@@ -21,6 +22,9 @@ public class StoryObject : MonoBehaviour
     
 
     [SerializeField] private bool newMode;
+    [SerializeField] private bool isStoryProgress;
+    [ShowIf("isStoryProgress")]
+    public int storyID;
 
     private GameObject activeModel;
     private GameObject worldText;
@@ -133,6 +137,12 @@ public class StoryObject : MonoBehaviour
             return;
         
         hasBeenTriggered = true;
+        
+        if (isStoryProgress)
+        {
+            Debug.Log("Sending Story ID: " + storyID);
+            StoryManager.Instance.ContinueStory(storyID);
+        }
         
         narrationAudioSource.Play();
         

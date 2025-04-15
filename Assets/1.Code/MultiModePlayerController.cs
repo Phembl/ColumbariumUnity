@@ -122,7 +122,7 @@ public class MultiModePlayerController : MonoBehaviour
         // Add skip story callback
         if (skipAction != null)
         {
-            skipAction.performed += ctx => TrySkipStory();
+            //skipAction.performed += ctx => TrySkipStory();
             Debug.Log("Skip action registered in player controller");
         }
         else
@@ -499,18 +499,7 @@ public class MultiModePlayerController : MonoBehaviour
         rb.isKinematic = false;
     }
     
-    /// <summary>
-    /// Attempts to skip the current story if one is playing
-    /// </summary>
-    private void TrySkipStory()
-    {
-        // Check if the StoryManager exists and if a story is playing
-        if (StoryManager.Instance != null && StoryManager.Instance.IsStoryPlaying())
-        {
-            Debug.Log("Skip button pressed - stopping story moment");
-            StoryManager.Instance.StopStoryMoment();
-        }
-    }
+
 
     #endregion
     

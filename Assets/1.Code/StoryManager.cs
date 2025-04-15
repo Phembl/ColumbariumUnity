@@ -3,7 +3,7 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using Unity.VisualScripting;
+using VInspector;
 
 /// <summary>
 /// Manages story interactions in the game world.
@@ -24,33 +24,46 @@ public class StoryManager : MonoBehaviour
             return _instance;
         }
     }
-
+    
+    [Tab("Setup")]
+   
+    [Header("Story Setup")]
+    [Tooltip("Select which chapter to start from")]
+    public Chapter startingChapter = Chapter.NICHTS;
+    
+    [Header("Transition Settings")]
+    [Tooltip("Duration of screen fade transitions")]
+    [SerializeField] private float fadeScreenDuration = 1.5f;
+    [SerializeField] private float chapterEndTime = 3f;
+    
+    [Header("Specific Story Settings")]
+    [SerializeField] private int gardenStoryCount = 5;
+    [SerializeField] private int taubenschlagStoryCount = 7;
+    [SerializeField] private int pidgeonStoryCount = 6;
+    [SerializeField] private int tricksterStoryCount = 4;
+    [EndTab]
+    
+    [Tab("References")]
     [Header("UI References")]
     [Tooltip("Panel that darkens the screen during story moments")]
     [SerializeField] private Image blackScreenPanel;
     [Tooltip("Text object that displays the story text")]
     [SerializeField] private TextMeshProUGUI storyText;
-
+    [SerializeField] private GameObject textHolder;
+    
     [Header("Player References")]
     [SerializeField] private GameObject human;
     [SerializeField] private GameObject bird;
     [SerializeField] private GameObject bug;
     private BasePlayerController playerController;
-    
-    private GameObject player;
-    
-    [Header("Transition Settings")]
-    [Tooltip("Duration of screen fade transitions")]
-    [SerializeField] private float fadeScreenDuration = 1.5f;
-    [Tooltip("Opacity of the black screen (0-1)")]
-    [Range(0f, 1f)]
-    [SerializeField] private float blackScreenOpacity = 0.9f;
 
-    [Header("Audio")]
-    [Tooltip("Audio source for playing story narration")]
-    [SerializeField] private AudioSource audioSource;
+    [Header("Audio References")] 
+    [SerializeField] private AudioClip prologueAudio;
+    [SerializeField] private AudioClip pidgeonQuestion;
+    [SerializeField] private AudioClip tricksterQuestion;
+    [SerializeField] private AudioClip epilogueAudio;
     
-    // Enum to select the starting chapter
+    
     public enum Chapter
     {
         PROLOG,
@@ -60,17 +73,15 @@ public class StoryManager : MonoBehaviour
         BECOMING_PIGEON,
         BE_A_TRICKSTER_BUILD_A_WORLD,
         EMBRYO,
-        FAREWELL
+        FAREWELL,
+        EPILOG,
+        GARTEN_ALTERNATIVE
     }
-    
-    [Header("Story Setup")]
-    [Tooltip("Select which chapter to start from")]
-    public Chapter startingChapter = Chapter.NICHTS;
     
 
     [Header("Chapter References")]
     [Tooltip("GameObject containing Prolog content")]
-    public GameObject prolog;
+    public GameObject chapter0;
     
     [Tooltip("GameObject containing Chapter 1 content")]
     public GameObject chapter1;
@@ -93,23 +104,24 @@ public class StoryManager : MonoBehaviour
     [Tooltip("GameObject containing Chapter 7 content")]
     public GameObject chapter7;
     
-    // Specific Story Variables
+    [Tooltip("GameObject containing Chapter 8 content")]
+    public GameObject chapter8;
+    
+    [Tooltip("GameObject containing Chapter 9 content")]
+    public GameObject chapter9;
+    
     [Header("Specific Story Elements")]
     [SerializeField] private TextMeshPro taubenschlagDoorText;
     [SerializeField] private GameObject chapter3Blocker;
-    [SerializeField] private AudioClip pidgeonQuestion;
-    
-    [SerializeField] private int gardenStoryCount = 5;
-    [SerializeField] private int taubenschlagStoryCount = 7;
-    [SerializeField] private int pidgeonStoryCount = 6;
-    [SerializeField] private int tricksterStoryCount = 4;
+    [EndTab]
     
     // Internal references
     private GameObject[] chapters;
     private int internalChapterProgress;
+    private GameObject player;
 
     // Internal state tracking
-    private bool isStoryPlaying = false;
+    //private bool isStoryPlaying = false;
     private Coroutine currentStoryCoroutine;
     private string storyContent;
     private AudioClip storyAudio;
@@ -134,35 +146,26 @@ public class StoryManager : MonoBehaviour
         
         // Make sure this object persists between scenes if needed
         DontDestroyOnLoad(gameObject);
+        
 
-        // Make sure UI elements are initialized correctly
-        if (blackScreenPanel != null)
-        {
-            // Initialize black screen to be invisible
-            Color initialColor = blackScreenPanel.color;
-            initialColor.a = 0f;
-            blackScreenPanel.color = initialColor;
-        }
-
-        if (storyText != null)
-        {
-            // Initialize story text to be invisible
-            Color initialColor = storyText.color;
-            initialColor.a = 0f;
-            storyText.color = initialColor;
-        }
+        // Initialize story text to be invisible
+        textHolder.GetComponent<CanvasGroup>().DOFade(0f, 0f);
+        blackScreenPanel.DOFade(0f, 0f);
+        
         
         // Initialize array of chapter GameObjects for easier handling
         chapters = new GameObject[]
         {
-            prolog,
+            chapter0,
             chapter1,
             chapter2,
             chapter3,
             chapter4,
             chapter5,
             chapter6,
-            chapter7
+            chapter7,
+            chapter8,
+            chapter9
         };
     }
     
@@ -176,8 +179,6 @@ public class StoryManager : MonoBehaviour
         // Setup correct Text for missing Scans
         taubenschlagDoorText.text = $"{gardenStoryCount} Scans fehlen.";
     }
-    
-   
     
     private void SwitchChapter(int chapter, bool newPlayerPosition)
     {
@@ -203,6 +204,13 @@ public class StoryManager : MonoBehaviour
         {
             SwitchPlayerController(bug);
         }
+        else if (chapter == 6)
+        {
+            // Deactivate all controllers
+            human.SetActive(false);
+            bird.SetActive(false);
+            bug.SetActive(false);
+        }
         else
         {
             SwitchPlayerController(human);
@@ -222,12 +230,14 @@ public class StoryManager : MonoBehaviour
             // Lock input briefly to prevent immediate override
             playerController.LockInput();
             
-            // Schedule unlock after a short delay
-            StartCoroutine(DelayedUnlock(playerController));
+            // Schedule unlock after a short delay (if not prolog or epilog)
+            if (chapter != 0 && chapter != 8) StartCoroutine(DelayedUnlock(playerController));
+            
         }
-        
 
+        if (chapter == 0) StartCoroutine(CheckSpecialStoryMoment());
     }
+    
        
     /// <summary>
     /// Coroutine to unlock player input after a short delay
@@ -252,173 +262,61 @@ public class StoryManager : MonoBehaviour
         playerController = player.GetComponent<BasePlayerController>();
     }
         
-   
     
-    /// <summary>
-    /// Public method to check if a story is currently playing
-    /// </summary>
-    /// <returns>True if a story is playing, false otherwise</returns>
-    public bool IsStoryPlaying()
-    {
-        return isStoryPlaying;
-    }
-
-    /// <summary>
-    /// Triggers a story moment with the provided text and audio clip
-    /// </summary>
-    /// <param name="storyContent">The text to display</param>
-    /// <param name="audioClip">The audio clip to play</param>
-    public void TriggerStoryMoment(string newStoryContent, AudioClip newStoryAudio, GameObject newStoryWorldText)
-    {
-        // If another story is already playing, stop it
-        if (isStoryPlaying)
-        {
-            if (currentStoryCoroutine != null)
-            {
-                StopCoroutine(currentStoryCoroutine);
-            }
-            
-            // Reset UI elements
-            ResetStoryUI();
-        }
-        
-        // Prepare new story moment
-        storyContent = newStoryContent;
-        storyAudio = newStoryAudio;
-
-        if (newStoryWorldText != null)
-        {
-            storyWorldText = newStoryWorldText;
-        }
-        else
-        {
-            storyWorldText = null;
-        }
-        
-        
-        // Start new story sequence
-        currentStoryCoroutine = StartCoroutine(PlayStorySequence());
-    }
-
-    /// <summary>
-    /// Coroutine that handles the entire story sequence including UI transitions,
-    /// audio playback, and player control
-    /// </summary>
-    private IEnumerator PlayStorySequence()
-    {
-        isStoryPlaying = true;
-
-        // Disable player input
-        playerController.LockInput();
-
-        // Activate UI elements
-        blackScreenPanel.gameObject.SetActive(true);
-        storyText.gameObject.SetActive(true);
-        storyText.text = storyContent;
-
-        storyVolume = audioSource.volume;
-
-        // Fade in black screen
-        blackScreenPanel.DOFade(blackScreenOpacity, fadeScreenDuration);
-        
-        // Fade in text
-        storyText.DOFade(1f, fadeScreenDuration);
-        
-        // Wait for Fade
-        yield return new WaitForSeconds(fadeScreenDuration);
-        
-        // Play Audio
-        audioSource.clip = storyAudio;
-        audioSource.Play();
-        
-        // Wait for audio to finish
-        yield return new WaitForSeconds(storyAudio.length);
-        
-        //bool specialbreak = CheckSpecialStoryMoment();
-        //if (!specialbreak) FinalizeStoryMoment(); // Finalizes Story if there is no special story part
-
-    }
-    
-
-    /// <summary>
-    /// Force stops the current story moment with smooth transitions (for skipping)
-    /// </summary>
-    public void StopStoryMoment()
-    {
-        if (isStoryPlaying && currentStoryCoroutine != null)
-        {
-            // Stop the main story coroutine
-            StopCoroutine(currentStoryCoroutine);
-            
-            // Duration for audio fade out
-            float audioFadeDuration = 0.8f;
-        
-            // Remember original audio volume for later restoration
-            float originalVolume = audioSource.volume;
-        
-            // Fade out Audio
-            audioSource.DOFade(0f, audioFadeDuration)
-                .OnComplete(() =>
-                {
-
-                    //bool specialbreak = CheckSpecialStoryMoment();
-                    //if (!specialbreak) FinalizeStoryMoment(); // Finalizes Story if there is no special story part
-                    
-                });
-        }
-    }
-
-    private void FinalizeStoryMoment()
-    {
-        // Fade out text
-        storyText.DOFade(0f, fadeScreenDuration);
-
-        // Fade out black screen
-        blackScreenPanel.DOFade(blackScreenOpacity, fadeScreenDuration)
-            .OnComplete(() => {
-                
-                // Deactivate UI elements
-                blackScreenPanel.gameObject.SetActive(false);
-                storyText.gameObject.SetActive(false);
-                
-                // Check WorldText
-                if (storyWorldText != null)
-                {
-                    storyWorldText.SetActive(true);
-                }
-                
-                // Re-enable player input
-                playerController.UnlockInput();
-                
-                // Reset UI elements
-                ResetStoryUI();
-
-                audioSource.volume = storyVolume;
-                
-                isStoryPlaying = false;
-            });
-    }
 
     private IEnumerator CheckSpecialStoryMoment()
     {
         
-        
         Debug.Log("Checking for secial Story Moment");
         Debug.Log($"Internal story progess: " + internalChapterProgress);
         Debug.Log($"Current Chapter: " + currentChapter);
-   
+        
+        // Prolopgue
+        if (currentChapter == 0)
+        {
+            blackScreenPanel.DOFade(1f, 0f);
+            yield return new WaitForSeconds(2f);
+            
+            //Write Text
+            storyText.text = "»Over a seven-day stint, we follow a character named LORD God as he creates the heavens, the earth, and everything in between […]. <br><br> He then goes on to form […] a male human. After breathing life into this man’s nostrils, he hovers eastward to Eden, not too far from Ethiopia. <br><br>There, LORD God plants […] a […] colourful garden with birds and bees, flowers and trees. […]«";
+            
+            storyText.DOFade(0f, 0f);
+            textHolder.GetComponent<CanvasGroup>().DOFade(1f, 0f);
+            
+            storyText.DOFade(1f, 1.5f);
+            yield return new WaitForSeconds(0.5f);
+            AudioSource.PlayClipAtPoint(prologueAudio, player.transform.position, 1f);
+            yield return new WaitForSeconds(31f);
+            
+            storyText.DOFade(0f, 1.5f);
+            yield return new WaitForSeconds(1.5f);
+            storyText.text = "In this heavenly abode of great beauty, he drops the unnamed man, for him ‘to dress it and to keep it’ <br>(Genesis 2:15). <br><br> […] he makes the gardener ‘an help’ from the man’s rib […]. From then on, the gardener is referred to as Adam and accompanied by a female assistant gardener who, we later learn, is called Eve.«<br><br> – Patricia de Vries (Against Gardening, 2021) –";
+            storyText.DOFade(1f, 1.5f);
+            yield return new WaitForSeconds(29f);
+            
+            storyText.DOFade(0f, 1.5f);
+            yield return new WaitForSeconds(1.5f);
+            textHolder.GetComponent<CanvasGroup>().DOFade(0f, 0f);
+            
+            SwitchChapter(1, true);
+            yield return new WaitForSeconds(1.5f);
+            blackScreenPanel.DOFade(0f, fadeScreenDuration);
+        }
+        
         // Switch to Bird Chapter
         if (currentChapter == 3 && internalChapterProgress == taubenschlagStoryCount)
         {
-            yield return new WaitForSeconds(3f);
+            //Wait for Switch
+            yield return new WaitForSeconds(chapterEndTime);
+            
             blackScreenPanel.DOFade(1f, fadeScreenDuration);
             yield return new WaitForSeconds(fadeScreenDuration);
             
             //Write Question
             storyText.text = "»Do you think they are individuals, like us?«";
             storyText.DOFade(1f, 0.5f);
-            
             AudioSource.PlayClipAtPoint(pidgeonQuestion, player.transform.position, 1f);
+            
             yield return new WaitForSeconds(pidgeonQuestion.length);
             
             storyText.DOFade(0f, 0.5f);
@@ -433,9 +331,12 @@ public class StoryManager : MonoBehaviour
         // Switch to Bug Chapter
         if (currentChapter == 4 && internalChapterProgress == pidgeonStoryCount)
         {
-            yield return new WaitForSeconds(3f);
+            //Wait for Switch
+            yield return new WaitForSeconds(chapterEndTime);
+            
             blackScreenPanel.DOFade(1f, fadeScreenDuration);
             yield return new WaitForSeconds(fadeScreenDuration);
+            
             SwitchChapter(5, true);
             yield return new WaitForSeconds(1f);
             blackScreenPanel.DOFade(0f, fadeScreenDuration);
@@ -445,56 +346,20 @@ public class StoryManager : MonoBehaviour
         // Switch to Embryo
         if (currentChapter == 5 && internalChapterProgress == tricksterStoryCount)
         {
-            Debug.Log("Switching to Embryo");
-            internalChapterProgress = 0;
-            currentChapter = 6;
-
-            blackScreenPanel.gameObject.SetActive(true);
-            blackScreenPanel.DOFade(1f, fadeScreenDuration)
-                .OnComplete(() => {
-
-                    chapters[5].SetActive(false);
-                    chapters[6].SetActive(true);
-
-                    // Deactivate all Controllers
-
-                    human.SetActive(false);
-                    bird.SetActive(false);
-                    bug.SetActive(false);
-
-
-
-                    FinalizeStoryMoment();
-                });
+            
+            //Wait for Switch
+            yield return new WaitForSeconds(chapterEndTime);
+            
+            blackScreenPanel.DOFade(1f, fadeScreenDuration);
+            yield return new WaitForSeconds(fadeScreenDuration + 1f);
+            
+            SwitchChapter(6, true);
+            blackScreenPanel.DOFade(0f, fadeScreenDuration);
+                
         }
 
-        specialCheck = null;
-
     }
-    
-    /// <summary>
-    /// Resets all UI elements to their default state
-    /// </summary>
-    private void ResetStoryUI()
-    {
-        // Reset black screen
-        Color screenColor = blackScreenPanel.color;
-        screenColor.a = 0f;
-        blackScreenPanel.color = screenColor;
-        blackScreenPanel.gameObject.SetActive(false);
 
-        // Reset text
-        Color textColor = storyText.color;
-        textColor.a = 0f;
-        storyText.color = textColor;
-        storyText.gameObject.SetActive(false);
-
-        // Stop audio if playing
-        if (audioSource.isPlaying)
-        {
-            audioSource.Stop();
-        }
-    }
     
     public void ContinueStory(int storyID)
     {
@@ -522,10 +387,7 @@ public class StoryManager : MonoBehaviour
             
             case 2:
                     // Entering Taubenschlag
-                    chapters[2].SetActive(false);
-                    chapters[3].SetActive(true);
-                    currentChapter = 3;
-                    internalChapterProgress = 0;
+                    SwitchChapter(3,true);
                     break;
                 
             case 3:
