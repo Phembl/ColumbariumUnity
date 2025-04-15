@@ -167,7 +167,7 @@ public class StoryObject : MonoBehaviour
             return;
         
         if (pulseTween.IsActive()) pulseTween.Kill();
-        modelMaterial.DOFloat(0f, "_SizeVariation", 0f);
+        //modelMaterial.DOFloat(0f, "_SizeVariation", 0f);
         pulseTween = modelMaterial.DOFloat(2f, "_SizeVariation", pulseTime).SetEase(Ease.InOutQuad).SetLoops(-1, LoopType.Yoyo);
 
     }
