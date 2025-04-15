@@ -121,7 +121,7 @@ Material:
     - _PointSize: 0.002
     - _QueueOffset: 0
     - _ReceiveShadows: 1
-    - _SizeVariation: 0.841
+    - _SizeVariation: 1
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1

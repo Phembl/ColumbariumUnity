@@ -17,6 +17,7 @@ public class StoryObject : MonoBehaviour
     [Header("Interaction Settings")]
     [SerializeField] private Color inactiveColor = new Color(0.75f, 0.75f, 0.75f, 1f); //Target Inactive Color;
     [SerializeField] private float inactiveFadeTime = 1f;
+    [SerializeField] private float pulseTime = 2f;
     
 
     [SerializeField] private bool newMode;
@@ -27,7 +28,10 @@ public class StoryObject : MonoBehaviour
     private TextMeshPro worldTextMesh;
     private Color textColor;
     private string playerTag = "Player"; // Tag to enter
-
+    private MeshRenderer modelRenderer;
+    private Material modelMaterial;
+    private Tween colorTween;
+    private Tween pulseTween;
 
     // Track if this story has been triggered
     private bool hasBeenTriggered = false;
@@ -41,6 +45,9 @@ public class StoryObject : MonoBehaviour
         Transform childTransform = transform.Find("Object");
         activeModel = childTransform?.gameObject;
         if (activeModel != null) activeModel.SetActive(true);
+        
+        modelRenderer = activeModel.GetComponent<MeshRenderer>();
+        modelMaterial = modelRenderer.material;
         
         // Setup Worldtext
         childTransform = transform.Find("Worldtext");
@@ -63,10 +70,12 @@ public class StoryObject : MonoBehaviour
     {
         if (other.CompareTag(playerTag))
         {
-            TriggerStoryMoment();
+            //TriggerStoryMoment();
         }
     }
 
+    /*
+    
     /// <summary>
     /// Triggers the story moment if conditions are met
     /// </summary>
@@ -84,17 +93,13 @@ public class StoryObject : MonoBehaviour
             narrationAudioSource.Play();
             
             // Fade Color
-            MeshRenderer modelRenderer = activeModel.GetComponent<MeshRenderer>();
             
             if (modelRenderer != null)
             {
-                Material modelMaterial = modelRenderer.material; // Get instance
-                Color startColor = modelMaterial.GetColor("_Tint"); // Get current color BEFORE tween
+                
+                if (colorTween.IsActive()) colorTween.Kill(); 
 
-                // Kill any previous tweens on this specific property/material instance
-                DOTween.Kill(modelMaterial, true); // true targets specific properties like _Tint
-
-                modelMaterial.DOColor(inactiveColor, "_Tint", inactiveFadeTime)
+                colorTween = modelMaterial.DOColor(inactiveColor, "_Tint", inactiveFadeTime)
                     .SetEase(Ease.Linear); // Use linear ease for predictable testing
                 
             }
@@ -116,11 +121,55 @@ public class StoryObject : MonoBehaviour
             StoryManager.Instance.TriggerStoryMoment(storyText, narrationAudio, worldText);
         }
 
+        
+        
+    }
+    
+    */
 
+    public void OnInteract()
+    {
+        if (hasBeenTriggered)
+            return;
         
-       //activeModel.SetActive(false);
-        //inactiveModel.SetActive(true);
+        hasBeenTriggered = true;
         
+        narrationAudioSource.Play();
+        
+        if (colorTween.IsActive()) colorTween.Kill(); 
+        
+        if (pulseTween.IsActive()) pulseTween.Kill();
+        modelMaterial.DOFloat(1f, "_SizeVariation", 0.5f);
+
+        colorTween = modelMaterial.DOColor(inactiveColor, "_Tint", inactiveFadeTime);
+        
+        // Fade in World Text
+        if (worldText != null)
+        {
+            worldTextMesh.DOFade(1f, 20f);
+                
+        }
+    }
+    
+    public void OnHoverEnter()
+    {
+        if (hasBeenTriggered)
+            return;
+        
+        if (pulseTween.IsActive()) pulseTween.Kill();
+        modelMaterial.DOFloat(0f, "_SizeVariation", 0f);
+        pulseTween = modelMaterial.DOFloat(2f, "_SizeVariation", pulseTime).SetEase(Ease.InOutQuad).SetLoops(-1, LoopType.Yoyo);
+
+    }
+    
+    
+    public void OnHoverExit()
+    {
+        if (hasBeenTriggered)
+            return;
+
+        if (pulseTween.IsActive()) pulseTween.Kill();
+        pulseTween = modelMaterial.DOFloat(1f, "_SizeVariation", 0.5f);
     }
     
 

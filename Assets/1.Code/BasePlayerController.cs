@@ -23,6 +23,12 @@ public abstract class BasePlayerController : MonoBehaviour
     [Tooltip("Maximum downward look angle in degrees")]
     public float maxLookDown = -90f;
 
+    [Header("Interaction Settings")]
+    [Tooltip("Maximum distance for interaction raycasts")]
+    [SerializeField] protected float interactionRange = 3f;
+    [Tooltip("Layer mask for interactable objects")]
+    [SerializeField] protected LayerMask interactionLayer;
+    
     // Shared protected variables
     protected Rigidbody rb;
     protected CapsuleCollider capsuleCollider;
@@ -36,10 +42,12 @@ public abstract class BasePlayerController : MonoBehaviour
     // Input Actions
     protected InputAction moveAction;
     protected InputAction lookAction;
-    protected InputAction humanModeAction;
-    protected InputAction birdModeAction;
-    protected InputAction bugModeAction;
     protected InputAction skipAction;
+    protected InputAction interactionAction;
+    
+    // Interaction 
+    protected GameObject currentInteractableObject;
+    protected bool isSomethingHovered = false;
 
     // Constants
     protected const float GROUND_CHECK_DISTANCE = 0.3f;
@@ -63,21 +71,29 @@ public abstract class BasePlayerController : MonoBehaviour
         moveAction = playerActionMap.FindAction("Move");
         lookAction = playerActionMap.FindAction("Look");
         skipAction = playerActionMap.FindAction("Skip");
+        interactionAction = playerActionMap.FindAction("Interact");
         
-        // These actions might still be needed for global switching
-        humanModeAction = playerActionMap.FindAction("HumanMode");
-        birdModeAction = playerActionMap.FindAction("BirdMode");
-        bugModeAction = playerActionMap.FindAction("BugMode");
         
-        // Add skip story callback
+      
         if (skipAction != null)
         {
-            skipAction.performed += ctx => TrySkipStory();
+            skipAction.performed += ctx => InteractWithObject();
             Debug.Log("Skip action registered in player controller");
         }
         else
         {
             Debug.LogWarning("Could not find 'Skip' action in Player action map. Story skipping won't work.");
+        }
+
+        if (interactionAction != null)
+        {
+            interactionAction.performed += ctx => InteractWithObject();
+            Debug.Log("Interact action registered in player controller");
+        }
+            
+        else
+        {
+            Debug.LogWarning("Could not find 'Interact' action in Player action map.");
         }
     }
 
@@ -115,8 +131,12 @@ public abstract class BasePlayerController : MonoBehaviour
         // Check if grounded
         CheckGroundStatus();
         
+        CheckForInteractableObjects();
+        
         // Additional update logic specific to each controller type
         ControllerSpecificUpdate();
+        
+       
     }
 
     protected virtual void FixedUpdate()
@@ -129,6 +149,46 @@ public abstract class BasePlayerController : MonoBehaviour
         HandleMovement();
     }
 
+    protected virtual void CheckForInteractableObjects()
+    {
+        if (cameraTransform == null) return;
+    
+        RaycastHit hit;
+        if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out hit, interactionRange, interactionLayer))
+        {
+            // We hit something on the interaction layer
+            if (currentInteractableObject != hit.collider.gameObject)
+            {
+                isSomethingHovered = true;
+                
+                // We're looking at a new object
+                currentInteractableObject = hit.collider.gameObject;
+            
+                // Call OnHover if the object has a method with that name
+                currentInteractableObject.SendMessage("OnHoverEnter", SendMessageOptions.DontRequireReceiver);
+                
+            }
+            
+        }
+        else if (currentInteractableObject != null)
+        {
+            // We were looking at something but now we're not
+            currentInteractableObject.SendMessage("OnHoverExit", SendMessageOptions.DontRequireReceiver);
+            currentInteractableObject = null;
+            isSomethingHovered = false;
+        }
+    }
+
+    protected virtual void InteractWithObject()
+    {
+        Debug.Log("Try Interaction");
+        if (isSomethingHovered && currentInteractableObject != null)
+        {
+            // Call OnInteract if the object has a method with that name
+            currentInteractableObject.SendMessage("OnInteract", SendMessageOptions.DontRequireReceiver);
+            
+        }
+    }
     #region Abstract and Virtual Methods
 
     /// <summary>
@@ -142,6 +202,8 @@ public abstract class BasePlayerController : MonoBehaviour
     protected virtual void ControllerSpecificUpdate() { }
 
     #endregion
+    
+    
 
     #region Helper Methods
 

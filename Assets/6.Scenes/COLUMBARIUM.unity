@@ -426,7 +426,7 @@ MonoBehaviour:
   fadeScreenDuration: 2
   blackScreenOpacity: 0.9
   audioSource: {fileID: 0}
-  startingChapter: 3
+  startingChapter: 1
   prolog: {fileID: 2015710193}
   chapter1: {fileID: 187926690}
   chapter2: {fileID: 1893313682}
@@ -1190,6 +1190,32 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &178257496 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7738344707823850222, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+  m_PrefabInstance: {fileID: 323816953}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &178257498
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 178257496}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.23, y: 1, z: 3.99}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &187926690 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6585114388865157965, guid: ef1d02fe71d5663409e5ccdc7b55b631, type: 3}
@@ -2376,7 +2402,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8164951358576544485, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_Radius
-      value: 3
+      value: 1.53
       objectReference: {fileID: 0}
     - target: {fileID: 8224009723022419143, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2418,10 +2444,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 8164951358576544485, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7738344707823850222, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 178257498}
   m_SourcePrefab: {fileID: 100100000, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
 --- !u!1 &355490700 stripped
 GameObject:
@@ -2535,6 +2565,10 @@ MonoBehaviour:
   lookSensitivity: 1.2
   maxLookUp: 90
   maxLookDown: -90
+  interactionRange: 3
+  interactionLayer:
+    serializedVersion: 2
+    m_Bits: 0
   riseSpeed: 2
   glideSpeed: 8
   gravityPull: 2
@@ -8361,6 +8395,10 @@ MonoBehaviour:
   lookSensitivity: 1
   maxLookUp: 60
   maxLookDown: -60
+  interactionRange: 3
+  interactionLayer:
+    serializedVersion: 2
+    m_Bits: 0
   walkSpeed: 1
 --- !u!136 &1235658600
 CapsuleCollider:
@@ -13833,6 +13871,10 @@ MonoBehaviour:
   lookSensitivity: 1
   maxLookUp: 75
   maxLookDown: -75
+  interactionRange: 3
+  interactionLayer:
+    serializedVersion: 2
+    m_Bits: 512
   walkSpeed: 6
 --- !u!136 &2082137173
 CapsuleCollider:
