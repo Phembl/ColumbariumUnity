@@ -3,6 +3,7 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.InputSystem;
 using UnityEngine.Video;
 using VInspector;
 using VInspector.Libs;
@@ -49,13 +50,14 @@ public class StoryManager : MonoBehaviour
     
     [Tab("References")]
     [Header("UI References")]
-    [Tooltip("Panel that darkens the screen during story moments")]
     [SerializeField] private Image blackScreenPanel;
-    [Tooltip("Text object that displays the story text")]
     [SerializeField] private TextMeshProUGUI storyText;
     [SerializeField] private GameObject textHolder;
+    [SerializeField] private TextMeshProUGUI answerTextField1;
+    [SerializeField] private TextMeshProUGUI answerTextField2;
     
     [Header("Player References")]
+    [SerializeField] private InputActionAsset inputActions;
     [SerializeField] private GameObject human;
     [SerializeField] private GameObject bird;
     [SerializeField] private GameObject bug;
@@ -144,9 +146,19 @@ public class StoryManager : MonoBehaviour
     private int currentChapter;
     private Coroutine specialCheck = null;
     
+    //Question Answering
+    private bool questionActive;
+    private int answer = 1;
+
+    
     // Save cursor state to restore later
     private CursorLockMode previousCursorLockState;
     private bool previousCursorVisible;
+    
+    // Input Actions
+    private InputAction moveAction;
+    private InputAction selectAction;
+    private Vector2 moveInput;
 
     private void Awake()
     {
@@ -165,6 +177,8 @@ public class StoryManager : MonoBehaviour
         // Initialize story text to be invisible
         textHolder.GetComponent<CanvasGroup>().DOFade(0f, 0f);
         blackScreenPanel.DOFade(0f, 0f);
+        answerTextField1.DOFade(0f, 0f);
+        answerTextField2.DOFade(0f, 0f);
         
         
         // Initialize array of chapter GameObjects for easier handling
@@ -181,6 +195,33 @@ public class StoryManager : MonoBehaviour
             chapter8,
             chapter9
         };
+        
+        SetupInputActions();
+    }
+    
+   private void SetupInputActions()
+    {
+        // Initialize the action map
+        var playerActionMap = inputActions.FindActionMap("Player");
+        
+        // Set up common actions
+        moveAction = playerActionMap.FindAction("Move");
+        selectAction = playerActionMap.FindAction("Interact");
+        
+        selectAction.performed += ctx => SelectAnswer();
+        
+    }
+   
+    protected virtual void OnEnable()
+    {
+        // Enable input actions
+        inputActions.Enable();
+    }
+
+    protected virtual void OnDisable()
+    {
+        // Disable input actions
+        inputActions.Disable();
     }
     
     private void Start()
@@ -192,6 +233,16 @@ public class StoryManager : MonoBehaviour
         
         // Setup correct Text for missing Scans
         taubenschlagDoorText.text = $"{gardenStoryCount} Scans fehlen.";
+    }
+
+    private void Update()
+    {
+        // Get input values
+        if (questionActive)
+        {
+            moveInput = moveAction.ReadValue<Vector2>();
+            CheckAnswer();
+        }
     }
     
     private void SwitchChapter(int chapter, bool newPlayerPosition)
@@ -334,10 +385,21 @@ public class StoryManager : MonoBehaviour
             
             //Write Question
             storyText.text = "»Do you think they are individuals, like us?«";
+            answerTextField1.text = "»Yes.«";
+            answerTextField2.text = "»No.«";
+            
+            storyText.DOFade(0f, 0f);
+            textHolder.GetComponent<CanvasGroup>().DOFade(1f, 0f);
+            
             storyText.DOFade(1f, 0.5f);
-            AudioSource.PlayClipAtPoint(pidgeonQuestion, player.transform.position, narrationVolume);
+            narrationAudioPlayer.PlayOneShot(pidgeonQuestion, narrationVolume);
             
             yield return new WaitForSeconds(pidgeonQuestion.length);
+            answerTextField1.DOFade(1f, 0.5f);
+            answerTextField2.DOFade(1f, 0.5f);
+
+            questionActive = true;
+            yield return new WaitUntil(() => !questionActive);
             
             storyText.DOFade(0f, 0.5f);
             SwitchChapter(4, true);
@@ -483,6 +545,40 @@ public class StoryManager : MonoBehaviour
                     if (specialCheck == null) specialCheck = StartCoroutine(CheckSpecialStoryMoment());
                     break;
             }
+        }
+    }
+    
+    private void SelectAnswer()
+    {
+        if (!questionActive) return;
+        
+        questionActive = false;
+        
+    }
+
+    private void CheckAnswer()
+    {
+        if (!questionActive) return;
+        
+        string answerText1 = answerTextField1.text;
+        string answerText2 = answerTextField2.text;
+        
+
+        if (moveInput.x > 0)
+        {
+            answer = 2;
+
+            answerTextField1.fontStyle = FontStyles.Normal;
+            answerTextField2.fontStyle = FontStyles.Underline;
+
+        }
+        else if (moveInput.x < 0)
+        {
+            answer = 1;
+            
+            answerTextField1.fontStyle = FontStyles.Underline;
+            answerTextField2.fontStyle = FontStyles.Normal;
+            
         }
     }
 }
