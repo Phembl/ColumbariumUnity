@@ -26,6 +26,7 @@ public class StoryObject : MonoBehaviour
     [ShowIf("isStoryProgress")]
     public int storyID;
 
+    private GameObject storyObject;
     private GameObject activeModel;
     private GameObject worldText;
     private AudioSource narrationAudioSource;
@@ -44,6 +45,9 @@ public class StoryObject : MonoBehaviour
 
     private void Start()
     {
+        
+        // Get Parent which is the actual StoryHolder
+        
         
         // Setup Models
         Transform childTransform = transform.Find("Object");
@@ -77,59 +81,6 @@ public class StoryObject : MonoBehaviour
             //TriggerStoryMoment();
         }
     }
-
-    /*
-    
-    /// <summary>
-    /// Triggers the story moment if conditions are met
-    /// </summary>
-    private void TriggerStoryMoment()
-    {
-        // Check if object can be triggered again
-        if (hasBeenTriggered)
-            return;
-
-        // Mark as triggered
-        hasBeenTriggered = true;
-
-        if (newMode)
-        {
-            narrationAudioSource.Play();
-            
-            // Fade Color
-            
-            if (modelRenderer != null)
-            {
-                
-                if (colorTween.IsActive()) colorTween.Kill(); 
-
-                colorTween = modelMaterial.DOColor(inactiveColor, "_Tint", inactiveFadeTime)
-                    .SetEase(Ease.Linear); // Use linear ease for predictable testing
-                
-            }
-            else
-            {
-                Debug.LogWarning("No model renderer found on " + activeModel);
-            }
-            // Fade in World Text
-            if (worldText != null)
-            {
-                worldTextMesh.DOFade(1f, 20f);
-                
-            }
-
-        }
-        else
-        {
-            // Send story content to the StoryManager
-            StoryManager.Instance.TriggerStoryMoment(storyText, narrationAudio, worldText);
-        }
-
-        
-        
-    }
-    
-    */
 
     public void OnInteract()
     {

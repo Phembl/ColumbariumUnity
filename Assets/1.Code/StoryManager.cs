@@ -3,7 +3,9 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.Video;
 using VInspector;
+using VInspector.Libs;
 
 /// <summary>
 /// Manages story interactions in the game world.
@@ -41,6 +43,8 @@ public class StoryManager : MonoBehaviour
     [SerializeField] private int taubenschlagStoryCount = 7;
     [SerializeField] private int pidgeonStoryCount = 6;
     [SerializeField] private int tricksterStoryCount = 4;
+
+    [Header("Volume Setup")] public float narrationVolume = 1f;
     [EndTab]
     
     [Tab("References")]
@@ -58,11 +62,21 @@ public class StoryManager : MonoBehaviour
     private BasePlayerController playerController;
 
     [Header("Audio References")] 
+    public AudioSource narrationAudioPlayer;
+    public GameObject storyAudioPlayer;
     [SerializeField] private AudioClip prologueAudio;
     [SerializeField] private AudioClip pidgeonQuestion;
     [SerializeField] private AudioClip tricksterQuestion;
+    [SerializeField] private AudioClip farewellAudio1;
+    [SerializeField] private AudioClip farewellAudio2;
     [SerializeField] private AudioClip epilogueAudio;
     
+    [Header("Video References")] 
+    [SerializeField] private VideoPlayer embryoVideoPlayer;
+    
+    [Header("Camera References")] 
+    [SerializeField] private Camera farewellCam;
+    [SerializeField] private GameObject farewellTargetPos;
     
     public enum Chapter
     {
@@ -204,12 +218,13 @@ public class StoryManager : MonoBehaviour
         {
             SwitchPlayerController(bug);
         }
-        else if (chapter == 6)
+        else if (chapter == 6 || chapter == 7)
         {
             // Deactivate all controllers
             human.SetActive(false);
             bird.SetActive(false);
             bug.SetActive(false);
+            newPlayerPosition = false;
         }
         else
         {
@@ -231,11 +246,15 @@ public class StoryManager : MonoBehaviour
             playerController.LockInput();
             
             // Schedule unlock after a short delay (if not prolog or epilog)
-            if (chapter != 0 && chapter != 8) StartCoroutine(DelayedUnlock(playerController));
+            if (chapter != 0 &&  chapter != 6 && chapter != 7 && chapter != 8) StartCoroutine(DelayedUnlock(playerController));
             
         }
 
-        if (chapter == 0) StartCoroutine(CheckSpecialStoryMoment());
+        if (chapter == 0 || chapter == 6 || chapter == 7 || chapter == 8)
+        {
+            StartCoroutine(CheckSpecialStoryMoment());
+        }
+            
     }
     
        
@@ -285,14 +304,15 @@ public class StoryManager : MonoBehaviour
             
             storyText.DOFade(1f, 1.5f);
             yield return new WaitForSeconds(0.5f);
-            AudioSource.PlayClipAtPoint(prologueAudio, player.transform.position, 1f);
+            
+            narrationAudioPlayer.PlayOneShot(prologueAudio, narrationVolume);
             yield return new WaitForSeconds(31f);
             
             storyText.DOFade(0f, 1.5f);
             yield return new WaitForSeconds(1.5f);
             storyText.text = "In this heavenly abode of great beauty, he drops the unnamed man, for him ‘to dress it and to keep it’ <br>(Genesis 2:15). <br><br> […] he makes the gardener ‘an help’ from the man’s rib […]. From then on, the gardener is referred to as Adam and accompanied by a female assistant gardener who, we later learn, is called Eve.«<br><br> – Patricia de Vries (Against Gardening, 2021) –";
             storyText.DOFade(1f, 1.5f);
-            yield return new WaitForSeconds(29f);
+            yield return new WaitForSeconds(28f);
             
             storyText.DOFade(0f, 1.5f);
             yield return new WaitForSeconds(1.5f);
@@ -315,7 +335,7 @@ public class StoryManager : MonoBehaviour
             //Write Question
             storyText.text = "»Do you think they are individuals, like us?«";
             storyText.DOFade(1f, 0.5f);
-            AudioSource.PlayClipAtPoint(pidgeonQuestion, player.transform.position, 1f);
+            AudioSource.PlayClipAtPoint(pidgeonQuestion, player.transform.position, narrationVolume);
             
             yield return new WaitForSeconds(pidgeonQuestion.length);
             
@@ -351,11 +371,63 @@ public class StoryManager : MonoBehaviour
             yield return new WaitForSeconds(chapterEndTime);
             
             blackScreenPanel.DOFade(1f, fadeScreenDuration);
-            yield return new WaitForSeconds(fadeScreenDuration + 1f);
+            yield return new WaitForSeconds(fadeScreenDuration);
             
-            SwitchChapter(6, true);
+            SwitchChapter(6, false);
+            yield return new WaitForSeconds(1f);
             blackScreenPanel.DOFade(0f, fadeScreenDuration);
                 
+        }
+        
+        // Embryo
+        if (currentChapter == 6)
+        {
+            float videoPlayTime = embryoVideoPlayer.clip.length.ToFloat();
+            if (videoPlayTime > 0) Debug.Log(videoPlayTime);
+            
+            yield return new WaitForSeconds(videoPlayTime - fadeScreenDuration);
+            blackScreenPanel.DOFade(1f, fadeScreenDuration);
+            yield return new WaitForSeconds(fadeScreenDuration);
+            
+            // Switch to Farewell
+            yield return new WaitForSeconds(3f);
+            SwitchChapter(7, false);
+            
+        }
+        
+        // Farewell
+        if (currentChapter == 7)
+        {
+            Debug.Log("Starting Farewell");
+            blackScreenPanel.DOFade(0f, 0f);
+            
+            Vector3 camTarget = farewellTargetPos.transform.position;
+            float moveDuration = 120f;
+            
+            farewellCam.transform.DOMove(camTarget, moveDuration).SetEase(Ease.InQuad);
+            yield return new WaitForSeconds(3f);
+            
+            narrationAudioPlayer.PlayOneShot(farewellAudio1, narrationVolume);
+            yield return new WaitForSeconds(farewellAudio1.length + 7f);
+            
+            narrationAudioPlayer.PlayOneShot(farewellAudio2, narrationVolume);
+            yield return new WaitForSeconds(farewellAudio2.length + 30f);
+            
+            blackScreenPanel.DOFade(1f, 4f);
+            yield return new WaitForSeconds(7f);
+            // Switch to Epilog
+            SwitchChapter(8, false);
+        }
+        
+        // Epilog
+        if (currentChapter == 8)
+        {
+            storyText.DOFade(0f, 0f);
+            textHolder.GetComponent<CanvasGroup>().DOFade(1f, 0f);
+            storyText.text = "»After all, there is only ever a Garden of Eden for as long as there is a gardener who tends to it.«<br><br>– Patricia de Vries (Against Gardening, 2021) –";
+            storyText.DOFade(1f, 2f);
+            yield return new WaitForSeconds(1f);
+            
         }
 
     }

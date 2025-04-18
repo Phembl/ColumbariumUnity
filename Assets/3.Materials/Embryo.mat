@@ -118,10 +118,10 @@ Material:
     - _Metallic: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.005
-    - _PointSize: 0.02
+    - _PointSize: 0.0015
     - _QueueOffset: 0
     - _ReceiveShadows: 1
-    - _SizeVariation: 0.841
+    - _SizeVariation: 3
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1

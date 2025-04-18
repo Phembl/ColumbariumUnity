@@ -73,17 +73,6 @@ public abstract class BasePlayerController : MonoBehaviour
         skipAction = playerActionMap.FindAction("Skip");
         interactionAction = playerActionMap.FindAction("Interact");
         
-        
-      
-        if (skipAction != null)
-        {
-            skipAction.performed += ctx => InteractWithObject();
-            Debug.Log("Skip action registered in player controller");
-        }
-        else
-        {
-            Debug.LogWarning("Could not find 'Skip' action in Player action map. Story skipping won't work.");
-        }
 
         if (interactionAction != null)
         {
@@ -151,7 +140,11 @@ public abstract class BasePlayerController : MonoBehaviour
 
     protected virtual void CheckForInteractableObjects()
     {
-        if (cameraTransform == null) return;
+        if (cameraTransform == null)
+        {
+            Debug.LogError("No camera transform assigned");
+            return;
+        }
     
         RaycastHit hit;
         if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out hit, interactionRange, interactionLayer))
