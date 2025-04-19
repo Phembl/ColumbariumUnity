@@ -45,7 +45,9 @@ public class StoryManager : MonoBehaviour
     [SerializeField] private int pidgeonStoryCount = 6;
     [SerializeField] private int tricksterStoryCount = 4;
 
-    [Header("Volume Setup")] public float narrationVolume = 1f;
+    [Header("Volume Setup")] 
+    public float narrationVolume = 1f;
+    public float storyVolume = 1f;
     [EndTab]
     
     [Tab("References")]
@@ -65,7 +67,7 @@ public class StoryManager : MonoBehaviour
 
     [Header("Audio References")] 
     public AudioSource narrationAudioPlayer;
-    public GameObject storyAudioPlayer;
+    [SerializeField] private GameObject storyAudioPlayer;
     [SerializeField] private AudioClip prologueAudio;
     [SerializeField] private AudioClip pidgeonQuestion;
     [SerializeField] private AudioClip tricksterQuestion;
@@ -142,7 +144,6 @@ public class StoryManager : MonoBehaviour
     private string storyContent;
     private AudioClip storyAudio;
     private GameObject storyWorldText;
-    private float storyVolume;
     private int currentChapter;
     private Coroutine specialCheck = null;
     
@@ -331,6 +332,40 @@ public class StoryManager : MonoBehaviour
         player.SetActive(true);
         playerController = player.GetComponent<BasePlayerController>();
     }
+    
+    /// <summary>
+    /// Instantiates a prefab with an AudioSource, plays the given clip at the specified position,
+    /// and destroys the instance after the clip finishes.
+    /// </summary>
+    /// <param name="clip">The AudioClip to play.</param>
+    /// <param name="position">The world space position to play the clip at.</param>
+    public void PlayClipAtPointUsingPrefab(AudioClip clip, Vector3 position)
+    {
+        
+        // --- Instantiate and Setup ---
+        // Instantiate the prefab at the desired position with no rotation
+        GameObject tempGO = Object.Instantiate(storyAudioPlayer, position, Quaternion.identity);
+
+        // Get the AudioSource component from the instantiated object
+        AudioSource audioSource = tempGO.GetComponent<AudioSource>();
+
+        // Ensure it won't play automatically if the prefab had it checked (belt & braces)
+        audioSource.playOnAwake = false;
+
+        // Assign the clip
+        audioSource.clip = clip;
+
+        // Apply volume scale if needed (multiplies with the prefab's volume setting)
+        audioSource.volume *= storyVolume;
+
+        // --- Play and Destroy ---
+        // Play the audio clip
+        audioSource.Play();
+
+        // Schedule the GameObject to be destroyed after the clip length
+        // Use the clip's length for the delay
+        Object.Destroy(tempGO, clip.length);
+    }
         
     
 
@@ -391,19 +426,24 @@ public class StoryManager : MonoBehaviour
             storyText.DOFade(0f, 0f);
             textHolder.GetComponent<CanvasGroup>().DOFade(1f, 0f);
             
-            storyText.DOFade(1f, 0.5f);
+            storyText.DOFade(1f, 1.5f);
+            yield return new WaitForSeconds(1f);
             narrationAudioPlayer.PlayOneShot(pidgeonQuestion, narrationVolume);
             
-            yield return new WaitForSeconds(pidgeonQuestion.length);
-            answerTextField1.DOFade(1f, 0.5f);
-            answerTextField2.DOFade(1f, 0.5f);
+            yield return new WaitForSeconds(pidgeonQuestion.length - 1f);
+            answerTextField1.DOFade(1f, 1.5f);
+            answerTextField2.DOFade(1f, 1.5f);
 
             questionActive = true;
             yield return new WaitUntil(() => !questionActive);
             
-            storyText.DOFade(0f, 0.5f);
+            answerTextField1.DOFade(0f, 1.5f);
+            answerTextField2.DOFade(0f, 1.5f);
+            storyText.DOFade(0f, 1.5f);
+            
             SwitchChapter(4, true);
-            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForSeconds(2.5f);
+            textHolder.GetComponent<CanvasGroup>().DOFade(0f, 0f);
             
             blackScreenPanel.DOFade(0f, fadeScreenDuration);
             

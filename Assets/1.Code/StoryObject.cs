@@ -1,3 +1,4 @@
+using System.Collections;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -13,15 +14,13 @@ public class StoryObject : MonoBehaviour
     [SerializeField, TextArea(3, 10)] private string storyText;
     
     [Tooltip("The audio clip to play during the story moment")]
-    [SerializeField] private AudioClip narrationAudio;
+    [SerializeField] private AudioClip storyAudioClip;
 
-    [Header("Interaction Settings")]
-    [SerializeField] private Color inactiveColor = new Color(0.75f, 0.75f, 0.75f, 1f); //Target Inactive Color;
-    [SerializeField] private float inactiveFadeTime = 1f;
-    [SerializeField] private float pulseTime = 2f;
+    // Interaction Settings
+    private Color inactiveColor = new Color(0.75f, 0.75f, 0.75f, 1f); //Target Inactive Color;
+    private float inactiveFadeTime = 2f;
+    private float pulseTime = 2f;
     
-
-    [SerializeField] private bool newMode;
     [SerializeField] private bool isStoryProgress;
     [ShowIf("isStoryProgress")]
     public int storyID;
@@ -29,10 +28,8 @@ public class StoryObject : MonoBehaviour
     private GameObject storyObject;
     private GameObject activeModel;
     private GameObject worldText;
-    private AudioSource narrationAudioSource;
     private TextMeshPro worldTextMesh;
     private Color textColor;
-    private string playerTag = "Player"; // Tag to enter
     private MeshRenderer modelRenderer;
     private Material modelMaterial;
     private Tween colorTween;
@@ -49,13 +46,21 @@ public class StoryObject : MonoBehaviour
         // Get Parent which is the actual StoryHolder
         
         
-        // Setup Models
-        Transform childTransform = transform.Find("Object");
+        // Setup Model
+        Transform childTransform = transform.Find("StoryObject");
         activeModel = childTransform?.gameObject;
-        if (activeModel != null) activeModel.SetActive(true);
+        if (activeModel != null)
+        {
+            activeModel.SetActive(true);
+            modelRenderer = activeModel.GetComponent<MeshRenderer>();
+            modelMaterial = modelRenderer.material;
+        }
+        else
+        {
+            Debug.LogError("No Story Object found!");
+        }
         
-        modelRenderer = activeModel.GetComponent<MeshRenderer>();
-        modelMaterial = modelRenderer.material;
+
         
         // Setup Worldtext
         childTransform = transform.Find("Worldtext");
@@ -67,20 +72,9 @@ public class StoryObject : MonoBehaviour
             textColor.a = 0;
             worldTextMesh.color = textColor;
         }
-  
-         
-        childTransform = transform.Find("AudioSource");
-        narrationAudioSource  = childTransform?.gameObject.GetComponent<AudioSource>();
-        if (narrationAudioSource != null) narrationAudioSource.clip = narrationAudio;
+        
     }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag(playerTag))
-        {
-            //TriggerStoryMoment();
-        }
-    }
+    
 
     public void OnInteract()
     {
@@ -95,14 +89,15 @@ public class StoryObject : MonoBehaviour
             StoryManager.Instance.ContinueStory(storyID);
         }
         
-        narrationAudioSource.Play();
+        StoryManager.Instance.PlayClipAtPointUsingPrefab(storyAudioClip, transform.position);
+        
         
         if (colorTween.IsActive()) colorTween.Kill(); 
         
         if (pulseTween.IsActive()) pulseTween.Kill();
         modelMaterial.DOFloat(1f, "_SizeVariation", 0.5f);
 
-        colorTween = modelMaterial.DOColor(inactiveColor, "_Tint", inactiveFadeTime);
+        colorTween = modelMaterial.DOColor(inactiveColor, "_Tint", inactiveFadeTime).SetEase(Ease.InQuad);
         
         // Fade in World Text
         if (worldText != null)
@@ -110,6 +105,8 @@ public class StoryObject : MonoBehaviour
             worldTextMesh.DOFade(1f, 20f);
                 
         }
+        
+        StartCoroutine(WaitForReset(storyAudioClip.length + 1f));
     }
     
     public void OnHoverEnter()
@@ -118,7 +115,6 @@ public class StoryObject : MonoBehaviour
             return;
         
         if (pulseTween.IsActive()) pulseTween.Kill();
-        //modelMaterial.DOFloat(0f, "_SizeVariation", 0f);
         pulseTween = modelMaterial.DOFloat(2f, "_SizeVariation", pulseTime).SetEase(Ease.InOutQuad).SetLoops(-1, LoopType.Yoyo);
 
     }
@@ -132,7 +128,12 @@ public class StoryObject : MonoBehaviour
         if (pulseTween.IsActive()) pulseTween.Kill();
         pulseTween = modelMaterial.DOFloat(1f, "_SizeVariation", 0.5f);
     }
-    
 
+    private IEnumerator WaitForReset(float waitTime)
+    {
+        yield return new WaitForSeconds(waitTime);
+        hasBeenTriggered = false;
+    }
+    
     
 }
