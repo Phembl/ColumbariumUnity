@@ -36,7 +36,7 @@ public class StoryObject : MonoBehaviour
     private Tween pulseTween;
 
     // Track if this story has been triggered
-    private bool hasBeenTriggered = false;
+    private bool hasBeenTriggered;
 
     // We're using trigger colliders only
 
@@ -88,8 +88,8 @@ public class StoryObject : MonoBehaviour
             Debug.Log("Sending Story ID: " + storyID);
             StoryManager.Instance.ContinueStory(storyID);
         }
-        
-        StoryManager.Instance.PlayClipAtPointUsingPrefab(storyAudioClip, transform.position);
+
+        StoryManager.Instance.PlayStoryAudio(storyAudioClip, transform.position);
         
         
         if (colorTween.IsActive()) colorTween.Kill(); 
