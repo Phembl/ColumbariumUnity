@@ -654,7 +654,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d70dcb1ba5597a6438d8f25d43034b6f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startingChapter: 5
+  startingChapter: 3
   fadeScreenDuration: 2
   gardenStoryCount: 1
   taubenschlagStoryCount: 2
@@ -16226,13 +16226,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   audioMixer: {fileID: 24100000, guid: e71ab8de538c44c4f9126980de2c4054, type: 2}
-  voiceAttenuation: 0
-  storyAttenuation: 0
+  voiceAttenuation: -16
+  storyAttenuation: -16
   nichtsAttenuation: 0
   gartenAttenuation: 0
-  taubenschlagAttenuation: 0
+  taubenschlagAttenuation: -5
   pidgeonAttenuation: 0
-  tricksterAttenuation: 0
+  tricksterAttenuation: -5
   embryoAttenuation: 0
 --- !u!4 &1590289374
 Transform:
@@ -16335,7 +16335,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6585114388865157965, guid: ef1d02fe71d5663409e5ccdc7b55b631, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6733901534774506993, guid: ef1d02fe71d5663409e5ccdc7b55b631, type: 3}
       propertyPath: m_LocalPosition.x
