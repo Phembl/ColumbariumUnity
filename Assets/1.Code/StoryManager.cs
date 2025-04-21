@@ -44,11 +44,10 @@ public class StoryManager : MonoBehaviour
     [SerializeField] private int taubenschlagStoryCount = 7;
     [SerializeField] private int pidgeonStoryCount = 6;
     [SerializeField] private int tricksterStoryCount = 4;
-    [SerializeField] private int altGarenStoryCount = 3;
-
-    [Header("Volume Setup")] 
-    public float narrationVolume = 1f;
-    public float storyVolume = 1f;
+    [SerializeField] private int altGardenStoryCount = 3;
+    
+    private float narrationVolume = 1f;
+    private float storyVolume = 1f;
     [EndTab]
     
     [Tab("References")]
@@ -68,7 +67,7 @@ public class StoryManager : MonoBehaviour
     private BasePlayerController playerController;
 
     [Header("Audio References")] 
-    public AudioSource narrationAudioPlayer;
+    [SerializeField] private AudioSource narrationAudioPlayer;
     [SerializeField] private GameObject storyAudioPlayer;
     [SerializeField] private AudioSource TaubenSchlagAtmo;
     [SerializeField] private AudioSource PidgeonFlugAtmo;
@@ -675,7 +674,7 @@ public class StoryManager : MonoBehaviour
                     yield return new WaitForSeconds(1f);
                     blackScreenPanel.DOFade(0f, fadeScreenDuration);
                 }
-                else if (internalChapterProgress == altGarenStoryCount)
+                else if (internalChapterProgress == altGardenStoryCount)
                 {
                     //Wait for Switch
                     yield return new WaitForSeconds(waitForAudioEndTime);
@@ -750,7 +749,7 @@ public class StoryManager : MonoBehaviour
             case 7:
             {
                 // Inside Alt Garten
-                if (internalChapterProgress < altGarenStoryCount) internalChapterProgress++;
+                if (internalChapterProgress < altGardenStoryCount) internalChapterProgress++;
                 break;
             }
                 
