@@ -75,6 +75,7 @@ public class StoryManager : MonoBehaviour
     [SerializeField] private AudioSource taubenSchlagAtmo;
     [SerializeField] private AudioSource pidgeonFlugAtmo;
     [SerializeField] private AudioSource tricksterAtmo;
+    [SerializeField] private AudioSource gardenAltAtmo;
     [SerializeField] private AudioClip prologueAudio;
     [SerializeField] private AudioClip pidgeonQuestion;
     [SerializeField] private AudioClip tricksterQuestion;
@@ -331,7 +332,7 @@ public class StoryManager : MonoBehaviour
         }
         else
         {
-            currentStoryAudioPlayer = Object.Instantiate(storyAudioPlayer, position, Quaternion.identity);
+            currentStoryAudioPlayer = Object.Instantiate(storyAudioPlayer, player.transform.position, Quaternion.identity);
         }
         
         AudioSource audioSource = currentStoryAudioPlayer.GetComponent<AudioSource>();
@@ -423,18 +424,37 @@ public class StoryManager : MonoBehaviour
         internalChapterProgress = 0;
         Debug.Log("Switching to Chapter_" + currentChapter);
 
-        if (chapter != 0)
+        if (chapter != 0 && chapter != 8)
         {
             //Deactivate Old Chapter
             chapters[chapter - 1].SetActive(false);
         }
+
+        if (chapter == 9)
+        {
+            //Deactivate Taubenschlag
+            chapters[3].SetActive(false);
+        }
+
+        if (chapter == 4)
+        {
+            //Deactivate Alt Garten
+            chapters[9].SetActive(false);
+        }
         
         //Make sure that all Atmo Volumes are reset
+        gartenAtmo1.gameObject.SetActive(true);
         gartenAtmo1.volume = 1;
+        gartenAtmo2.gameObject.SetActive(true);
         gartenAtmo2.volume = 1;
+        taubenSchlagAtmo.gameObject.SetActive(true);
         taubenSchlagAtmo.volume = 1;
+        pidgeonFlugAtmo.gameObject.SetActive(true);
         pidgeonFlugAtmo.volume = 1;
+        tricksterAtmo.gameObject.SetActive(true);
         tricksterAtmo.volume = 1;
+        gardenAltAtmo.gameObject.SetActive(true);
+        gardenAltAtmo.volume = 1;
         
         //Activate new Chapter
         chapters[chapter].SetActive(true);
@@ -620,8 +640,8 @@ public class StoryManager : MonoBehaviour
             yield return new WaitForSeconds(0.1f);
             playerController.LockInput();
             blackScreen.DOFade(1f, 1f);
-            gartenAtmo1.DOFade(0f, 2f);
-            gartenAtmo2.DOFade(0f, 2f);
+            gartenAtmo1.DOFade(0f, 2f).OnComplete(() => gartenAtmo1.gameObject.SetActive(false));
+            gartenAtmo2.DOFade(0f, 2f).OnComplete(() => gartenAtmo2.gameObject.SetActive(false));
             yield return new WaitForSeconds(1f);
             SwitchChapter(3,true);
         }
@@ -664,7 +684,7 @@ public class StoryManager : MonoBehaviour
             
                 playerController.LockInput();
                 blackScreen.DOFade(1f, fadeScreenDuration);
-                taubenSchlagAtmo.DOFade(0f, fadeScreenDuration);
+                taubenSchlagAtmo.DOFade(0f, fadeScreenDuration).OnComplete(() => taubenSchlagAtmo.gameObject.SetActive(false));
                 yield return new WaitForSeconds(fadeScreenDuration);
                 
             
@@ -737,7 +757,6 @@ public class StoryManager : MonoBehaviour
                 playerController.LockInput();
                 blackScreen.DOFade(1f, fadeScreenDuration);
                 pidgeonFlugAtmo.DOFade(0f, fadeScreenDuration);
-                pidgeonFlugAtmo.DOFade(0f, fadeScreenDuration);
                 yield return new WaitForSeconds(fadeScreenDuration);
                 
                 
@@ -792,7 +811,7 @@ public class StoryManager : MonoBehaviour
                 
                 playerController.LockInput();
                 blackScreen.DOFade(1f, fadeScreenDuration);
-                tricksterAtmo.DOFade(0f, fadeScreenDuration);
+                tricksterAtmo.DOFade(0f, fadeScreenDuration).OnComplete(() => tricksterAtmo.gameObject.SetActive(false));
                 yield return new WaitForSeconds(fadeScreenDuration + 2f);
 
                 SwitchChapter(6, false);
@@ -871,7 +890,8 @@ public class StoryManager : MonoBehaviour
             
                 playerController.LockInput();
                 blackScreen.DOFade(1f, fadeScreenDuration);
-                taubenSchlagAtmo.DOFade(0f, fadeScreenDuration);
+                gardenAltAtmo.DOFade(0f, fadeScreenDuration)
+                    .OnComplete(() => gardenAltAtmo.gameObject.SetActive(false));
                 yield return new WaitForSeconds(fadeScreenDuration);
                 
             
@@ -900,13 +920,13 @@ public class StoryManager : MonoBehaviour
                 yield return new WaitForSeconds(1.5f);
                 textHolder.DOFade(0f, 0f);
             
-                if (answer == 1)
+                if (answer == 2)
                 {
                     // Go to Pidgeon
                     yield return new WaitForSeconds(1f);
                     SwitchChapter(4, true);
                 }
-                else if (answer == 2)
+                else if (answer == 1)
                 {
                     // Go to Garden alternative
                     yield return new WaitForSeconds(1f);

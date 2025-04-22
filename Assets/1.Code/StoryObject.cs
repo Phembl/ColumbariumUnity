@@ -22,10 +22,6 @@ public class StoryObject : MonoBehaviour
     private float inactiveFadeTime = 2f;
     private float pulseTime = 2f;
     
-    [SerializeField] private bool isStoryProgress;
-    [ShowIf("isStoryProgress")]
-    public int storyID;
-
     private GameObject storyObject;
     private GameObject activeModel;
     private GameObject worldText;
