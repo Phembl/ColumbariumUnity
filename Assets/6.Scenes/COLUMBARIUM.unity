@@ -713,7 +713,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d70dcb1ba5597a6438d8f25d43034b6f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startingChapter: 3
+  startingChapter: 9
   fadeScreenDuration: 2
   gardenStoryCount: 2
   taubenschlagStoryCount: 1
@@ -13570,7 +13570,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6585114388865157965, guid: ef1d02fe71d5663409e5ccdc7b55b631, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6733901534774506993, guid: ef1d02fe71d5663409e5ccdc7b55b631, type: 3}
       propertyPath: m_LocalPosition.x

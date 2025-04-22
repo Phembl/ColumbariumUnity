@@ -897,7 +897,7 @@ public class StoryManager : MonoBehaviour
             
                 //Write Question
                 storyText.text = "»Are you sure we aren't individuals like you?«";
-                answerTextField1.text = "»Yes«";
+                answerTextField1.text = "»I'm not sure«";
                 answerTextField2.text = "»No«";
             
                 storyText.DOFade(0f, 0f);
@@ -905,7 +905,7 @@ public class StoryManager : MonoBehaviour
             
                 storyText.DOFade(1f, 1.5f);
                 yield return new WaitForSeconds(1f);
-                //PlayStoryAudio(pidgeonQuestion, new Vector3(100,100,100), true);  
+                //PlayStoryAudio(pidgeonFlugAtmo.clip, new Vector3(100,100,100), true);  
             
                 yield return new WaitForSeconds(pidgeonQuestion.length - 2f);
                 answerTextField1.DOFade(1f, 1.5f);
