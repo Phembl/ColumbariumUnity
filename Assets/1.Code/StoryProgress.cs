@@ -19,6 +19,7 @@ public class StoryProgress : MonoBehaviour
             {
                 hasBeenTriggered = true;
                 SendStoryID();
+                
             }
         }
 
@@ -29,9 +30,12 @@ public class StoryProgress : MonoBehaviour
         if (StoryManager.Instance != null)
         {
             Debug.Log("Sending Story ID: " + storyID);
-            StoryManager.Instance.ContinueStory(storyID);
+            //StoryManager.Instance.ContinueStory(storyID);
+            StoryManager.Instance.StoryPointTriggered(transform.gameObject, true);
         }
 
     }
+    
+    
     
 }

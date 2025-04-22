@@ -174,7 +174,11 @@ public abstract class BasePlayerController : MonoBehaviour
 
     protected virtual void InteractWithObject()
     {
-        Debug.Log("Try Interaction");
+        if (isInputLocked)
+        {
+            return;
+        }
+        
         if (isSomethingHovered && currentInteractableObject != null)
         {
             // Call OnInteract if the object has a method with that name

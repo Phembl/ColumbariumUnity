@@ -14,7 +14,8 @@ public class StoryObject : MonoBehaviour
     [SerializeField, TextArea(3, 10)] private string storyText;
     
     [Tooltip("The audio clip to play during the story moment")]
-    [SerializeField] private AudioClip storyAudioClip;
+    public AudioClip storyAudioClip;
+
 
     // Interaction Settings
     private Color inactiveColor = new Color(0.75f, 0.75f, 0.75f, 1f); //Target Inactive Color;
@@ -43,8 +44,10 @@ public class StoryObject : MonoBehaviour
     private void Start()
     {
         
-        // Get Parent which is the actual StoryHolder
-        
+    }
+
+    public void Reset() //This is called at the beginning of the game by StoryManager
+    {
         
         // Setup Model
         Transform childTransform = transform.Find("StoryObject");
@@ -60,7 +63,6 @@ public class StoryObject : MonoBehaviour
             Debug.LogError("No Story Object found!");
         }
         
-
         
         // Setup Worldtext
         childTransform = transform.Find("Worldtext");
@@ -72,9 +74,16 @@ public class StoryObject : MonoBehaviour
             textColor.a = 0;
             worldTextMesh.color = textColor;
         }
-        
+
+        // Starting Color is black, objects are faded in
+        modelMaterial.DOColor(Color.black, "_Tint", 0f);
     }
-    
+
+    public void ChapterStart()
+    {
+        hasBeenTriggered = false;
+        modelMaterial.DOColor(Color.white, "_Tint", 2f);
+    }
 
     public void OnInteract()
     {
@@ -83,14 +92,7 @@ public class StoryObject : MonoBehaviour
         
         hasBeenTriggered = true;
         
-        if (isStoryProgress)
-        {
-            Debug.Log("Sending Story ID: " + storyID);
-            StoryManager.Instance.ContinueStory(storyID);
-        }
-
-        StoryManager.Instance.PlayStoryAudio(storyAudioClip, transform.position);
-        
+        StoryManager.Instance.StoryPointTriggered(transform.gameObject, false);
         
         if (colorTween.IsActive()) colorTween.Kill(); 
         
