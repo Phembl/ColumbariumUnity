@@ -904,16 +904,19 @@ public class StoryManager : MonoBehaviour
                 textHolder.DOFade(1f, 0f);
             
                 storyText.DOFade(1f, 1.5f);
-                yield return new WaitForSeconds(1f);
-                //PlayStoryAudio(pidgeonFlugAtmo.clip, new Vector3(100,100,100), true);  
-            
-                yield return new WaitForSeconds(pidgeonQuestion.length - 2f);
+                
+                GameObject altGartenQuestionAudioplayer = Instantiate(storyAudioPlayer, player.transform.position, Quaternion.identity);
+                altGartenQuestionAudioplayer.GetComponent<AudioSource>().clip = pidgeonFlugAtmo.clip;
+                altGartenQuestionAudioplayer.GetComponent<AudioSource>().Play();
+                
+                yield return new WaitForSeconds(pidgeonQuestion.length - 3f);
                 answerTextField1.DOFade(1f, 1.5f);
                 answerTextField2.DOFade(1f, 1.5f);
 
                 questionActive = true;
                 yield return new WaitUntil(() => !questionActive);
-            
+                
+                altGartenQuestionAudioplayer.GetComponent<AudioSource>().DOFade(0f, 1.5f).OnComplete(() => altGartenQuestionAudioplayer.Destroy());;
                 answerTextField1.DOFade(0f, 1.5f);
                 answerTextField2.DOFade(0f, 1.5f);
                 storyText.DOFade(0f, 1.5f);
