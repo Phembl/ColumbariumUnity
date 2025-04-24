@@ -145,16 +145,20 @@ public class StoryManager : MonoBehaviour
     private GameObject[] chapters;
     private int internalChapterProgress;
     private GameObject player;
-    private GameObject currentStoryAudioPlayer;
+    private bool isPaused;
+
 
     // Internal state tracking
-    private bool isStoryPlaying;
     private string storyContent;
-    private AudioClip storyAudio;
     private GameObject storyWorldText;
     private int currentChapter;
-    private Coroutine currentStoryCoroutine = null;
     private bool chapterIsFadingOut;
+    
+    //Story Audio tracking
+    private bool isStoryPlaying;
+    private AudioClip storyAudio;
+    private GameObject StoryAudioPlayerObject;
+    private float waitForAudioEndTime;
     
     //Question Answering
     private bool questionActive;
@@ -284,7 +288,7 @@ public class StoryManager : MonoBehaviour
     private void Update()
     {
         // Get input values
-        if (questionActive)
+        if (questionActive && !isPaused)
         {
             moveInput = moveAction.ReadValue<Vector2>();
             CheckAnswer();
@@ -302,6 +306,20 @@ public class StoryManager : MonoBehaviour
         player.SetActive(true);
         playerController = player.GetComponent<BasePlayerController>();
     }
+
+    public void PauseGame()
+    {
+        isPaused = true;
+        if (StoryAudioPlayerObject != null)StoryAudioPlayerObject.GetComponent<AudioPlayer>().PauseAudio();
+        playerController.LockInput();
+    }
+
+    public void UnpauseGame()
+    {
+        isPaused = false;
+        if (StoryAudioPlayerObject != null)StoryAudioPlayerObject.GetComponent<AudioPlayer>().UnpauseAudio();
+        playerController.UnlockInput();
+    }
     
     // Audio Functions
     public void PlayStoryAudio(AudioClip clip, Vector3 position, bool voiceOnly = false)
@@ -312,15 +330,12 @@ public class StoryManager : MonoBehaviour
             return;
         }
         
-        if (currentStoryCoroutine != null)
+        
+        if (isStoryPlaying)
         {
             //FadeOut currently playing story
             isStoryPlaying = false;
-            GameObject oldStoryAudioPlayer = currentStoryAudioPlayer;
-            StopCoroutine(currentStoryCoroutine);
-            currentStoryCoroutine = null;
-            oldStoryAudioPlayer.GetComponent<AudioSource>().DOFade(0f, 1f)
-                .OnComplete(() => Object.Destroy(oldStoryAudioPlayer));
+            StoryAudioPlayerObject.GetComponent<AudioPlayer>().StopAudio();
         }
         
         isStoryPlaying = true;
@@ -328,37 +343,19 @@ public class StoryManager : MonoBehaviour
         // Create Story Audio Object
         if (voiceOnly)
         {
-            currentStoryAudioPlayer = Object.Instantiate(voiceAudioPlayer, position, Quaternion.identity);
+            StoryAudioPlayerObject = Object.Instantiate(voiceAudioPlayer, position, Quaternion.identity);
         }
         else
         {
-            currentStoryAudioPlayer = Object.Instantiate(storyAudioPlayer, player.transform.position, Quaternion.identity);
+            StoryAudioPlayerObject = Object.Instantiate(storyAudioPlayer, player.transform.position, Quaternion.identity);
         }
         
-        AudioSource audioSource = currentStoryAudioPlayer.GetComponent<AudioSource>();
-
-        // Prepare Story Audio
-        audioSource.playOnAwake = false;
-        audioSource.clip = clip;
-        //audioSource.volume *= storyVolume;
-        
-        // Play Story Audio
-        audioSource.Play();
-        
-
-        // Schedule the GameObject to be destroyed after the clip length
-        currentStoryCoroutine = StartCoroutine(StoryIsRunning(clip.length));
+        StoryAudioPlayerObject.GetComponent<AudioPlayer>().PlayAudio(clip);
+        waitForAudioEndTime = StoryAudioPlayerObject.GetComponent<AudioSource>().clip.length + 1f;
+        isStoryPlaying = true;
         
     }
     
-    private IEnumerator StoryIsRunning(float waitTime)
-    {
-        yield return new WaitForSeconds(waitTime);
-        isStoryPlaying = false;
-        Object.Destroy(currentStoryAudioPlayer);
-        currentStoryCoroutine = null;
-        
-    }
     
     // UI Functions
     private void SelectAnswer()
@@ -584,6 +581,7 @@ public class StoryManager : MonoBehaviour
         }
     }
 
+    #region Chapters
     private IEnumerator Chapter0()
     {
         // Starting Prolog
@@ -675,7 +673,7 @@ public class StoryManager : MonoBehaviour
         {
             if (internalChapterProgress == taubenschlagStoryCount)
             {
-                float waitForAudioEndTime = currentStoryAudioPlayer.GetComponent<AudioSource>().clip.length + 1f;
+                float waitForAudioEndTime = StoryAudioPlayerObject.GetComponent<AudioSource>().clip.length + 1f;
                 
                 //Wait for Switch
                 chapterIsFadingOut = true;
@@ -747,7 +745,6 @@ public class StoryManager : MonoBehaviour
             //Switch to Bug Chapter
             if (internalChapterProgress == pidgeonStoryCount)
             {
-                float waitForAudioEndTime = currentStoryAudioPlayer.GetComponent<AudioSource>().clip.length + 1f;
                     
                 //Wait for Switch
                 chapterIsFadingOut = true;
@@ -802,7 +799,6 @@ public class StoryManager : MonoBehaviour
         {
             if (internalChapterProgress == tricksterStoryCount)
             {
-                float waitForAudioEndTime = currentStoryAudioPlayer.GetComponent<AudioSource>().clip.length + 1f;
                 
                 //Wait for Switch
                 chapterIsFadingOut = true;
@@ -881,7 +877,6 @@ public class StoryManager : MonoBehaviour
         {
             if (internalChapterProgress == altGardenStoryCount)
             {
-                float waitForAudioEndTime = currentStoryAudioPlayer.GetComponent<AudioSource>().clip.length + 1f;
                 
                 //Wait for Switch
                 chapterIsFadingOut = true;
@@ -898,7 +893,7 @@ public class StoryManager : MonoBehaviour
                 //Write Question
                 storyText.text = "»Are you sure we aren't individuals like you?«";
                 answerTextField1.text = "»I'm not sure«";
-                answerTextField2.text = "»No«";
+                answerTextField2.text = "»Yes«";
             
                 storyText.DOFade(0f, 0f);
                 textHolder.DOFade(1f, 0f);
@@ -923,13 +918,13 @@ public class StoryManager : MonoBehaviour
                 yield return new WaitForSeconds(1.5f);
                 textHolder.DOFade(0f, 0f);
             
-                if (answer == 2)
+                if (answer == 1)
                 {
                     // Go to Pidgeon
                     yield return new WaitForSeconds(1f);
                     SwitchChapter(4, true);
                 }
-                else if (answer == 1)
+                else if (answer == 2)
                 {
                     // Go to Garden alternative
                     yield return new WaitForSeconds(1f);
@@ -947,333 +942,6 @@ public class StoryManager : MonoBehaviour
         yield break;
     }
     
-/*
-    private IEnumerator CheckSpecialStoryMoment()
-    {
-        
-        
-        Debug.Log("Checking for special Story Moment");
-        Debug.Log($"Internal story progess: " + internalChapterProgress);
-        
-        float waitForAudioEndTime = 0f;
-        yield return new WaitForSeconds(0.05f);
-        
-        if (isStoryPlaying)
-        {
-            // If an Story episode is still playing in Background, this is the waittime until it is finished for some chapters
-            waitForAudioEndTime = currentStoryAudioPlayer.GetComponent<AudioSource>().clip.length + 1f;
-        }
-        
-        // Prologe
-        switch (currentChapter)
-        {
-            case 0:
-                yield return new WaitForSeconds(2f);
-            
-                //Write Text
-                storyText.text = "»Over a seven-day stint, we follow a character named LORD God as he creates the heavens, the earth, and everything in between […]. <br><br> He then goes on to form […] a male human. After breathing life into this man’s nostrils, he hovers eastward to Eden, not too far from Ethiopia. <br><br>There, LORD God plants […] a […] colourful garden with birds and bees, flowers and trees. […]«";
-            
-                storyText.DOFade(0f, 0f);
-                textHolder.DOFade(1f, 0f);
-            
-                storyText.DOFade(1f, 1.5f);
-                yield return new WaitForSeconds(0.5f);
-            
-                narrationAudioPlayer.PlayOneShot(prologueAudio, narrationVolume);
-                yield return new WaitForSeconds(31f);
-            
-                storyText.DOFade(0f, 1.5f);
-                yield return new WaitForSeconds(1.5f);
-                storyText.text = "In this heavenly abode of great beauty, he drops the unnamed man, for him ‘to dress it and to keep it’ <br>(Genesis 2:15). <br><br> […] he makes the gardener ‘an help’ from the man’s rib […]. From then on, the gardener is referred to as Adam and accompanied by a female assistant gardener who, we later learn, is called Eve.«<br><br> – Patricia de Vries (Against Gardening, 2021) –";
-                storyText.DOFade(1f, 1.5f);
-                yield return new WaitForSeconds(28f);
-            
-                storyText.DOFade(0f, 1.5f);
-                yield return new WaitForSeconds(1.5f);
-                textHolder.DOFade(0f, 0f);
-                SwitchChapter(1, true);
-                break;
-            
-            case 1:
-                yield return new WaitForSeconds(0.5f);
-                blackScreen.DOFade(0f, fadeScreenDuration);
-                playerController.UnlockInput();
-                break;
-            
-            case 2:
-                playerController.UnlockInput();
-                break;
-            
-            case 3:
-                // Switch to Bird Chapter
-                
-                if (internalChapterProgress == taubenschlagStoryCount)
-                {
-                    //Wait for Switch
-                    chapterIsFadingOut = true;
-                    yield return new WaitForSeconds(waitForAudioEndTime);
-                    chapterIsFadingOut = false;
-            
-                    blackScreen.DOFade(1f, fadeScreenDuration);
-                    taubenSchlagAtmo.DOFade(0f, fadeScreenDuration);
-                    yield return new WaitForSeconds(fadeScreenDuration);
-                    playerController.LockInput();
-            
-                    //Write Question
-                    storyText.text = "»Do you think they are individuals, like us?«";
-                    answerTextField1.text = "»Yes«";
-                    answerTextField2.text = "»No«";
-            
-                    storyText.DOFade(0f, 0f);
-                    textHolder.DOFade(1f, 0f);
-            
-                    storyText.DOFade(1f, 1.5f);
-                    yield return new WaitForSeconds(1f);
-                    narrationAudioPlayer.PlayOneShot(pidgeonQuestion, narrationVolume);
-            
-                    yield return new WaitForSeconds(pidgeonQuestion.length - 1f);
-                    answerTextField1.DOFade(1f, 1.5f);
-                    answerTextField2.DOFade(1f, 1.5f);
-
-                    questionActive = true;
-                    yield return new WaitUntil(() => !questionActive);
-            
-                    answerTextField1.DOFade(0f, 1.5f);
-                    answerTextField2.DOFade(0f, 1.5f);
-                    storyText.DOFade(0f, 1.5f);
-                    yield return new WaitForSeconds(1.5f);
-            
-                    if (answer == 1)
-                    {
-                        // Go to Pidgeon
-                        SwitchChapter(4, true);
-                    }
-                    else if (answer == 2)
-                    {
-                        // Go to Garden alternative
-                        SwitchChapter(9, true);
-                        answer = 1;
-                    }
-            
-                    yield return new WaitForSeconds(1f);
-                    textHolder.DOFade(0f, 0f);
-                    blackScreen.DOFade(0f, fadeScreenDuration);
-                }
-                break;
-            
-            case 4:
-                // Switch to Bug Chapter
-                if (internalChapterProgress == pidgeonStoryCount)
-                {
-                    //Wait for Switch
-                    chapterIsFadingOut = true;
-                    yield return new WaitForSeconds(waitForAudioEndTime);
-                    chapterIsFadingOut = false;
-            
-                    blackScreen.DOFade(1f, fadeScreenDuration);
-                    pidgeonFlugAtmo.DOFade(0f, fadeScreenDuration);
-                    pidgeonFlugAtmo.DOFade(0f, fadeScreenDuration);
-                    yield return new WaitForSeconds(fadeScreenDuration);
-                    playerController.LockInput();
-                    
-                    //Write Question
-                    storyText.text = "»Do you know what a trickster is?«";
-                    answerTextField1.text = "»Yes«";
-                    answerTextField2.text = "»No«";
-            
-                    storyText.DOFade(0f, 0f);
-                    textHolder.DOFade(1f, 0f);
-            
-                    storyText.DOFade(1f, 1.5f);
-                    yield return new WaitForSeconds(1f);
-                    narrationAudioPlayer.PlayOneShot(tricksterQuestion, narrationVolume);
-            
-                    yield return new WaitForSeconds(tricksterQuestion.length - 1f);
-                    answerTextField1.DOFade(1f, 1.5f);
-                    answerTextField2.DOFade(1f, 1.5f);
-
-                    questionActive = true;
-                    yield return new WaitUntil(() => !questionActive);
-                    
-                    answerTextField1.DOFade(0f, 1.5f);
-                    answerTextField2.DOFade(0f, 1.5f);
-                    storyText.DOFade(0f, 1.5f);
-                    yield return new WaitForSeconds(1.5f);
-            
-                    SwitchChapter(5, true);
-                    yield return new WaitForSeconds(1f);
-                    textHolder.DOFade(0f, 0f);
-                    blackScreen.DOFade(0f, fadeScreenDuration);
-                }
-                break;
-            
-            case 5:
-                // Switch to Embryo
-                if (internalChapterProgress == tricksterStoryCount)
-                {
-                    //Wait for Switch
-                    chapterIsFadingOut = true;
-                    yield return new WaitForSeconds(waitForAudioEndTime);
-                    chapterIsFadingOut = false;
-            
-                    blackScreen.DOFade(1f, fadeScreenDuration);
-                    yield return new WaitForSeconds(fadeScreenDuration);
-                    
-                    yield return new WaitForSeconds(2f);
-                    SwitchChapter(6, false);
-                    yield return new WaitForSeconds(1f);
-                    blackScreen.DOFade(0f, fadeScreenDuration);
-                }
-                break;
-            
-            case 6:
-                //Embryo
-                float videoPlayTime = embryoVideoPlayer.clip.length.ToFloat();
-                if (videoPlayTime > 0) Debug.Log(videoPlayTime);
-            
-                yield return new WaitForSeconds(videoPlayTime - fadeScreenDuration);
-                blackScreen.DOFade(1f, fadeScreenDuration);
-                yield return new WaitForSeconds(fadeScreenDuration);
-            
-                // Switch to Farewell
-                yield return new WaitForSeconds(3f);
-                SwitchChapter(7, false);
-                break;
-            
-            case 7:
-                // Farewell
-                Debug.Log("Starting Farewell");
-                blackScreen.DOFade(0f, 0f);
-            
-                Vector3 camTarget = farewellTargetPos.transform.position;
-                float moveDuration = 120f;
-            
-                farewellCam.transform.DOMove(camTarget, moveDuration).SetEase(Ease.InQuad);
-                yield return new WaitForSeconds(3f);
-            
-                narrationAudioPlayer.PlayOneShot(farewellAudio1, narrationVolume);
-                yield return new WaitForSeconds(farewellAudio1.length + 7f);
-            
-                narrationAudioPlayer.PlayOneShot(farewellAudio2, narrationVolume);
-                yield return new WaitForSeconds(farewellAudio2.length + 30f);
-            
-                blackScreen.DOFade(1f, 4f);
-                yield return new WaitForSeconds(7f);
-                
-                // Switch to Epilog
-                SwitchChapter(8, false);
-                break;
-            
-            case 8:
-                // Epilog
-                storyText.DOFade(0f, 0f);
-                textHolder.DOFade(1f, 0f);
-                storyText.text = "»After all, there is only ever a Garden of Eden for as long as there is a gardener who tends to it.«<br><br>– Patricia de Vries (Against Gardening, 2021) –";
-                storyText.DOFade(1f, 2f);
-                yield return new WaitForSeconds(5f);
-                storyText.DOFade(0f, 2f);
-                yield return new WaitForSeconds(4f);
-                StartCoroutine(Credits());
-                break;
-            
-            case 9:
-                if (internalChapterProgress < altGardenStoryCount)
-                {
-                    blackScreen.DOFade(1f, 0f);
-                    yield return new WaitForSeconds(1f);
-                    Debug.Log("Switching from Garden Alt to Pidgeon");
-                    SwitchChapter(4, true);
-                    yield return new WaitForSeconds(1f);
-                    blackScreen.DOFade(0f, fadeScreenDuration);
-                }
-                else if (internalChapterProgress == altGardenStoryCount)
-                {
-                    //Wait for Switch
-                    chapterIsFadingOut = true;
-                    yield return new WaitForSeconds(waitForAudioEndTime);
-                    chapterIsFadingOut = false;
-                    
-                    blackScreen.DOFade(1f, fadeScreenDuration);
-                    yield return new WaitForSeconds(fadeScreenDuration + 2f);
-                    StartCoroutine(Credits());
-                }
-                break;
-        }
-
-        specialCheck = null;
-    } // Not in use anymore
-
-    
-    public void ContinueStory(int storyID) // Not in use anymore
-    {
-
-        return; 
-        
-        Debug.Log("continue story");
-        switch (storyID)
-        {
-            case 0:
-                //Entering Garden From Nichts
-                SwitchChapter(2,false);
-                break;
-            
-            case 1:
-                // In the Garden
-                internalChapterProgress++;
-                if (internalChapterProgress < gardenStoryCount)
-                {
-                    taubenschlagDoorText.text = $"{gardenStoryCount - internalChapterProgress} Scans fehlen.";
-                }
-                else if (internalChapterProgress == gardenStoryCount)
-                {
-                    Debug.Log("Taubenschlag unlocked");
-                    chapter3Blocker.SetActive(false);
-                    taubenschlagDoorText.text = "";
-                }    
-                break;
-            
-            case 2:
-                    // Entering Taubenschlag
-                    SwitchChapter(3,true);
-                    break;
-                
-            case 3:
-                
-                    // Inside Taubenschlag
-                    if (internalChapterProgress < taubenschlagStoryCount) internalChapterProgress++;
-                    if (specialCheck == null) specialCheck = StartCoroutine(CheckSpecialStoryMoment());
-                    break;
-                
-            case 4:
-                
-                    // While Flying
-                    if (internalChapterProgress < pidgeonStoryCount) internalChapterProgress++;
-                    if (specialCheck == null) specialCheck = StartCoroutine(CheckSpecialStoryMoment());
-                    break;
-                
-            case 5:
-            {
-                    // While Bug
-                    if (internalChapterProgress < tricksterStoryCount) internalChapterProgress++;
-                    if (specialCheck == null) specialCheck = StartCoroutine(CheckSpecialStoryMoment());
-                    break;
-            }
-            case 6:
-            {
-                    // From Garden alt to Pidgeon
-                    if (specialCheck == null) specialCheck = StartCoroutine(CheckSpecialStoryMoment());
-                    break;
-            }
-            case 7:
-            {
-                // Inside Alt Garten
-                if (internalChapterProgress < altGardenStoryCount) internalChapterProgress++;
-                break;
-            }
-                
-        }
-    }
-*/
-
+    #endregion
     
 }

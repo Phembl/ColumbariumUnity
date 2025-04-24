@@ -36,11 +36,7 @@ public class StoryObject : MonoBehaviour
     private bool hasBeenTriggered;
 
     // We're using trigger colliders only
-
-    private void Start()
-    {
-        
-    }
+    
 
     public void Reset() //This is called at the beginning of the game by StoryManager
     {
