@@ -12,11 +12,13 @@ public class MenuManager : MonoBehaviour
     [SerializeField] private GameObject menuHolder;
     [SerializeField] private GameObject hauptMenu;
     [SerializeField] private GameObject chapterMenu;
+    [SerializeField] private GameObject settingsMenu;
         
     // Input Actions
     private InputAction navigateAction;
     private InputAction submitAction;
     private InputAction pauseAction;
+    private InputAction backAction;
     private Vector2 navigationInput;
     private bool navigationProcessing;
     
@@ -32,19 +34,14 @@ public class MenuManager : MonoBehaviour
 
 
     
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
-    
     private void Awake()
     {
       
         menuPages = new GameObject[]
         {
             hauptMenu,
-            chapterMenu
+            chapterMenu,
+            settingsMenu
         };
         
         SetupInputActions();
@@ -75,9 +72,11 @@ public class MenuManager : MonoBehaviour
         submitAction = playerActionMap.FindAction("Submit");
         navigateAction = playerActionMap.FindAction("Navigate");
         pauseAction = playerActionMap.FindAction("Pause");
+        backAction = playerActionMap.FindAction("Back");
         
         submitAction.performed += ctx => SelectMenuPoint();
         pauseAction.performed += ctx => OpenMenu();
+        backAction.performed += ctx => GoPageBack();
         
     }
 
@@ -94,25 +93,27 @@ public class MenuManager : MonoBehaviour
         {
             
             StoryManager.Instance.PauseGame();
-            StartCoroutine(openMenu(0));
+            StartCoroutine(SwitchMenuPage(0));
             menuHolder.GetComponent<CanvasGroup>().DOFade(1f, menuFadeTime);
             
             
         }
     }
 
-    private IEnumerator openMenu(int page, bool closePage = false, int pageToClose = -1)
+    private IEnumerator SwitchMenuPage(int page, bool closePage = false)
     {
-        currentMenuPage = page;
-        Debug.Log("Opening menu: " + menuPages[page].name);
         
         //Checks if a page should also be closed
         if (closePage)
         {
             menuIsOpen = false;
-            menuPages[pageToClose].GetComponent<CanvasGroup>().DOFade(0f, menuFadeTime);
+            menuPages[currentMenuPage].GetComponent<CanvasGroup>().DOFade(0f, menuFadeTime);
             yield return new WaitForSeconds(menuFadeTime);
+            ResetAuswahl();
         }
+        
+        currentMenuPage = page;
+        Debug.Log("Opening menu: " + menuPages[page].name);
         
         //Finds "Auswahl" object which holds menu points
         currentAuswahlHolder = menuPages[page].transform.Find("Auswahl").gameObject;
@@ -128,20 +129,27 @@ public class MenuManager : MonoBehaviour
         menuHolder.GetComponent<CanvasGroup>().alpha = 0f;
         hauptMenu.GetComponent<CanvasGroup>().alpha = 0f;
         chapterMenu.GetComponent<CanvasGroup>().alpha = 0f;
+        settingsMenu.GetComponent<CanvasGroup>().alpha = 0f;
 
         if (currentAuswahlHolder != null)
         {
-            //Make all Menu points not underlined
-            foreach (Transform child in currentAuswahlHolder.transform)
-            {
-                child.gameObject.GetComponent<TextMeshProUGUI>().fontStyle = FontStyles.Normal;
-            }
-        
-            //Underline first point
-            currentAuswahlHolder.transform.GetChild(0).GetComponent<TextMeshProUGUI>().fontStyle = FontStyles.Underline;
+            ResetAuswahl();
         }
 
     }
+
+    private void ResetAuswahl()
+    {
+        //Make all Menu points not underlined
+        foreach (Transform child in currentAuswahlHolder.transform)
+        {
+            child.gameObject.GetComponent<TextMeshProUGUI>().fontStyle = FontStyles.Normal;
+        }
+        
+        //Underline first point
+        currentAuswahlHolder.transform.GetChild(0).GetComponent<TextMeshProUGUI>().fontStyle = FontStyles.Underline;
+    }
+
 
     private void navigateMenu()
     {
@@ -189,6 +197,15 @@ public class MenuManager : MonoBehaviour
 
         
     }
+    
+    void GoPageBack()
+    {
+        if (!menuIsOpen) return;
+        if (currentMenuPage == 0) return;
+        if (currentMenuPage == 1) StartCoroutine(SwitchMenuPage(0, true));
+        if (currentMenuPage == 2) StartCoroutine(SwitchMenuPage(0, true));
+    }
+
 
     private void SelectMenuPoint()
     {
@@ -198,46 +215,13 @@ public class MenuManager : MonoBehaviour
         {
             if (currentSelection == 0)
             {
-                StartCoroutine(openMenu(1, true, 0));
+                StartCoroutine(SwitchMenuPage(1, true));
             }
-        }
-    }
-/*
-    private void SelectMenuPoint()
-    {
-        if (!menuIsOpen) return;
-        
-
-        if (moveInput.magnitude > 0.1 && !navigationProcessing)
-        {
-
-                answerTextField1.fontStyle = FontStyles.Normal;
-                answerTextField2.fontStyle = FontStyles.Underline;
-                
-            }
-            else if (moveInput.x < 0)
+            else if (currentSelection == 1)
             {
-                if (currentChapter == 4)
-                {
-                    answerTextField1.text = "»Yes«";
-                    answerTextField2.text = "»No«";
-                }
-                else
-                {
-                    answer = 1;
-                }
-                
-                answerTextField1.fontStyle = FontStyles.Underline;
-                answerTextField2.fontStyle = FontStyles.Normal;
-            
+                StartCoroutine(SwitchMenuPage(2, true));
             }
-            navigationProcessing = true;
         }
-        else if (moveInput.magnitude < 0.1)
-        {
-            navigationProcessing = false;
-        }
-        
     }
-*/
+
 }
