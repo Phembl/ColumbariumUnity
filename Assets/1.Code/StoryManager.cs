@@ -48,6 +48,7 @@ public class StoryManager : MonoBehaviour
     
     private float narrationVolume = 1f;
     private float storyVolume = 1f;
+    
     [EndTab]
     
     [Tab("References")]
@@ -233,27 +234,17 @@ public class StoryManager : MonoBehaviour
     
     private void Start()
     {
-        
-        // Initialize UI
-        textHolder.DOFade(0f, 0f);
-        blackScreen.DOFade(1f, 0f); //Start with black Screen
-        answerTextField1.DOFade(0f, 0f);
-        answerTextField2.DOFade(0f, 0f);
-        creditsHolder.DOFade(0f, 0f);
-        
-
-        StartCoroutine(LoadNewGame());
-        
-        // Get the index of the selected chapter
-        int selectedChapterIndex = (int)startingChapter;
-        
-        SwitchChapter(selectedChapterIndex, true);
-        
-        // Setup correct Text for missing Scans
-        taubenschlagDoorText.text = $"{gardenStoryCount} Scans fehlen.";
+        StartNewGame((int)startingChapter);
     }
 
-    private IEnumerator LoadNewGame()
+    public void StartNewGame(int chapter)
+    {
+        StartCoroutine(LoadGame());
+        InitUI();
+        SwitchChapter(chapter, true);
+    }
+    
+    private IEnumerator LoadGame()
     {
         yield return StartCoroutine(ResetWorld());
     }
@@ -281,8 +272,27 @@ public class StoryManager : MonoBehaviour
                 
             }
         }
+        
+        if (isStoryPlaying)
+        {
+            //Kill Audio
+            isStoryPlaying = false;
+            StoryAudioPlayerObject.GetComponent<AudioPlayer>().StopAudio(false);
+        }
+        
         Debug.Log("World Reset");
         yield return null;
+    }
+
+    private void InitUI()
+    {
+        // Initialize UI
+        
+        blackScreen.DOFade(1f, 0f); //Start with black Screen
+        textHolder.GetComponent<CanvasGroup>().alpha = 0f;
+        answerTextField1.DOFade(0f, 0f);
+        answerTextField2.DOFade(0f, 0f);
+        creditsHolder.DOFade(0f, 0f);
     }
 
     private void Update()
@@ -311,14 +321,14 @@ public class StoryManager : MonoBehaviour
     {
         isPaused = true;
         if (StoryAudioPlayerObject != null)StoryAudioPlayerObject.GetComponent<AudioPlayer>().PauseAudio();
-        playerController.LockInput();
+        if (playerController!= null) playerController.LockInput();
     }
 
     public void UnpauseGame()
     {
         isPaused = false;
         if (StoryAudioPlayerObject != null)StoryAudioPlayerObject.GetComponent<AudioPlayer>().UnpauseAudio();
-        playerController.UnlockInput();
+        if (playerController!= null) playerController.UnlockInput();
     }
     
     // Audio Functions
@@ -621,6 +631,8 @@ public class StoryManager : MonoBehaviour
         else if (triggerOnly)
         {
             //Entering Garden From Nichts
+            // Setup correct Text for missing Scans
+            taubenschlagDoorText.text = $"{gardenStoryCount} Scans fehlen.";
             SwitchChapter(2,false);
         }
    

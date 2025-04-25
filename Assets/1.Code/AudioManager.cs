@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.Audio;
 using VInspector;
@@ -29,6 +30,14 @@ public class AudioManager : MonoBehaviour
     {
         changeVolume();
     }
+
+    private void Awake()
+    {
+
+        
+        
+    }
+
     void Start()
     { 
        changeVolume();
