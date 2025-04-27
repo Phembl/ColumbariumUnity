@@ -34,6 +34,7 @@ public class MenuManager : MonoBehaviour
     private bool navigationProcessing;
     
     // State tracking
+    private bool gameHasStarted;
     bool menuIsOpen;
     private int currentMenuPage;
     private int currentSelection;
@@ -45,6 +46,7 @@ public class MenuManager : MonoBehaviour
 
 
     public static AudioManager Instance;
+    
     
     private void Awake()
     {
@@ -66,18 +68,6 @@ public class MenuManager : MonoBehaviour
         ResetMenu();
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        if (menuIsOpen)
-        {
-            navigationInput = navigateAction.ReadValue<Vector2>();
-            navigateMenu();
-        }
-    }
-
-
-
     private void SetupInputActions()
     {
         Debug.Log("UI Input Actions Setup");
@@ -97,9 +87,26 @@ public class MenuManager : MonoBehaviour
         backAction.performed += ctx => GoPageBack();
         
     }
+    
+    // Update is called once per frame
+    void Update()
+    {
+        if (menuIsOpen)
+        {
+            navigationInput = navigateAction.ReadValue<Vector2>();
+            navigateMenu();
+        }
+    }
 
+    public void StartGame()
+    {
+        gameHasStarted = true;
+    }
     private void OpenMenu()
     {
+        if (!gameHasStarted)
+            return;
+        
         if (menuIsOpen)
         {
             Debug.Log("Menu is closing");

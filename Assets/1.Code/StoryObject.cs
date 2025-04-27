@@ -34,6 +34,7 @@ public class StoryObject : MonoBehaviour
 
     // Track if this story has been triggered
     private bool hasBeenTriggered;
+    private bool isCurrentlyPlaying;
 
     // We're using trigger colliders only
     
@@ -79,33 +80,41 @@ public class StoryObject : MonoBehaviour
 
     public void OnInteract()
     {
-        if (hasBeenTriggered)
+        if (isCurrentlyPlaying)
             return;
         
-        hasBeenTriggered = true;
-        
-        StoryManager.Instance.StoryPointTriggered(transform.gameObject, false);
+        isCurrentlyPlaying =  true;
         
         if (colorTween.IsActive()) colorTween.Kill(); 
-        
         if (pulseTween.IsActive()) pulseTween.Kill();
         modelMaterial.DOFloat(1f, "_SizeVariation", 0.5f);
-
-        colorTween = modelMaterial.DOColor(inactiveColor, "_Tint", inactiveFadeTime).SetEase(Ease.InQuad);
         
-        // Fade in World Text
-        if (worldText != null)
+        if (!hasBeenTriggered)
         {
-            worldTextMesh.DOFade(1f, 20f);
-                
+            hasBeenTriggered = true;
+            colorTween = modelMaterial.DOColor(inactiveColor, "_Tint", inactiveFadeTime).SetEase(Ease.InQuad);
+            StoryManager.Instance.StoryPointTriggered(transform.gameObject, false);
+
+            if (worldText != null) StartCoroutine(ShowWorldText());
+        }
+        
+        else
+        {
+            StoryManager.Instance.StoryPointTriggered(transform.gameObject, false, false);
         }
         
         StartCoroutine(WaitForReset(storyAudioClip.length + 1f));
     }
     
+    private IEnumerator ShowWorldText()
+    {
+        yield return new WaitForSeconds(storyAudioClip.length - 2f);
+        if (worldText != null) worldTextMesh.DOFade(1f, 20f);
+    }
+    
     public void OnHoverEnter()
     {
-        if (hasBeenTriggered)
+        if (isCurrentlyPlaying)
             return;
         
         if (pulseTween.IsActive()) pulseTween.Kill();
@@ -113,10 +122,9 @@ public class StoryObject : MonoBehaviour
 
     }
     
-    
     public void OnHoverExit()
     {
-        if (hasBeenTriggered)
+        if (isCurrentlyPlaying)
             return;
 
         if (pulseTween.IsActive()) pulseTween.Kill();
@@ -126,7 +134,7 @@ public class StoryObject : MonoBehaviour
     private IEnumerator WaitForReset(float waitTime)
     {
         yield return new WaitForSeconds(waitTime);
-        hasBeenTriggered = false;
+        isCurrentlyPlaying = false;
     }
     
     

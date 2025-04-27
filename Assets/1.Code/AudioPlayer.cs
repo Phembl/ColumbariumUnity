@@ -10,7 +10,7 @@ public class AudioPlayer : MonoBehaviour
     private bool isPaused;
     private bool shouldBeDestroyed;
     private bool shouldFade;
-
+    
     private void Awake()
     {
         audioSource = GetComponent<AudioSource>();
@@ -61,7 +61,9 @@ public class AudioPlayer : MonoBehaviour
         {
             Destroy(gameObject);
         }
-        
+
+        StoryManager.Instance.StoryAudioHasFinished();
+
     }
 
     public void StopAudio(bool fade = true)

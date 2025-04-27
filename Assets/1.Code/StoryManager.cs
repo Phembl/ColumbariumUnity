@@ -28,10 +28,11 @@ public class StoryManager : MonoBehaviour
             return _instance;
         }
     }
+
+    [Tab("Setup")] [Header("Story Setup")] 
+    public bool useStartScreen;
     
-    [Tab("Setup")]
-   
-    [Header("Story Setup")]
+    
     [Tooltip("Select which chapter to start from")]
     public Chapter startingChapter = Chapter.NICHTS;
     
@@ -45,13 +46,14 @@ public class StoryManager : MonoBehaviour
     [SerializeField] private int pidgeonStoryCount = 6;
     [SerializeField] private int tricksterStoryCount = 4;
     [SerializeField] private int altGardenStoryCount = 3;
-    
-    private float narrationVolume = 1f;
-    private float storyVolume = 1f;
+
     
     [EndTab]
     
     [Tab("References")]
+    [Header("Manager References")]
+    [SerializeField] private MenuManager menuManager;
+    
     [Header("UI References")]
     [SerializeField] private Image blackScreen;
     [SerializeField] private TextMeshProUGUI storyText;
@@ -105,7 +107,6 @@ public class StoryManager : MonoBehaviour
         GARTEN_ALTERNATIVE
     }
     
-
     [Header("Chapter References")]
     [Tooltip("GameObject containing Prolog content")]
     public GameObject chapter0;
@@ -137,6 +138,8 @@ public class StoryManager : MonoBehaviour
     [Tooltip("GameObject containing Chapter 9 content")]
     public GameObject chapter9;
     
+    [Space]
+    public GameObject startScreen;
     [Header("Specific Story Elements")]
     [SerializeField] private TextMeshPro taubenschlagDoorText;
     [SerializeField] private GameObject chapter3Blocker;
@@ -154,6 +157,7 @@ public class StoryManager : MonoBehaviour
     private GameObject storyWorldText;
     private int currentChapter;
     private bool chapterIsFadingOut;
+    private bool readyToStartGame;
     
     //Story Audio tracking
     private bool isStoryPlaying;
@@ -171,8 +175,9 @@ public class StoryManager : MonoBehaviour
     private bool previousCursorVisible;
     
     // Input Actions
-    private InputAction moveAction;
-    private InputAction selectAction;
+    private InputAction navigateAction;
+    private InputAction submitAction;
+    private InputAction startAction;
     private Vector2 moveInput;
     private bool navigateProcessed = false;
 
@@ -210,13 +215,15 @@ public class StoryManager : MonoBehaviour
    private void SetupInputActions()
     {
         // Initialize the action map
-        var playerActionMap = inputActions.FindActionMap("Player");
+        var playerActionMap = inputActions.FindActionMap("UI");
         
         // Set up common actions
-        moveAction = playerActionMap.FindAction("Move");
-        selectAction = playerActionMap.FindAction("Interact");
+        navigateAction = playerActionMap.FindAction("Navigate");
+        submitAction = playerActionMap.FindAction("Submit");
+        startAction = playerActionMap.FindAction("Pause");
         
-        selectAction.performed += ctx => SelectAnswer();
+        submitAction.performed += ctx => SelectAnswer();
+        startAction.performed += ctx => StartGame();
         
     }
    
@@ -241,7 +248,17 @@ public class StoryManager : MonoBehaviour
     {
         StartCoroutine(LoadGame());
         InitUI();
-        SwitchChapter(chapter, true);
+        
+        if (useStartScreen)
+        {
+            StartCoroutine(StartScreen());
+        }
+        else
+        {
+            menuManager.StartGame();
+            SwitchChapter(chapter, true);
+        }
+        
     }
     
     private IEnumerator LoadGame()
@@ -251,6 +268,9 @@ public class StoryManager : MonoBehaviour
     
     private IEnumerator ResetWorld()
     {
+        //Deactivate Start Screen
+        startScreen.gameObject.SetActive(false);
+        
         // Deactivate all Chapters
         for (int i = 0; i < chapters.Length; i++)
         {
@@ -300,7 +320,7 @@ public class StoryManager : MonoBehaviour
         // Get input values
         if (questionActive && !isPaused)
         {
-            moveInput = moveAction.ReadValue<Vector2>();
+            moveInput = navigateAction.ReadValue<Vector2>();
             CheckAnswer();
         }
     }
@@ -345,7 +365,7 @@ public class StoryManager : MonoBehaviour
         {
             //FadeOut currently playing story
             isStoryPlaying = false;
-            StoryAudioPlayerObject.GetComponent<AudioPlayer>().StopAudio();
+            if (StoryAudioPlayerObject != null) StoryAudioPlayerObject.GetComponent<AudioPlayer>().StopAudio();
         }
         
         isStoryPlaying = true;
@@ -362,8 +382,12 @@ public class StoryManager : MonoBehaviour
         
         StoryAudioPlayerObject.GetComponent<AudioPlayer>().PlayAudio(clip);
         waitForAudioEndTime = StoryAudioPlayerObject.GetComponent<AudioSource>().clip.length + 1f;
-        isStoryPlaying = true;
         
+    }
+
+    public void StoryAudioHasFinished() // Is called by Story Audio Player
+    {
+        isStoryPlaying = false;
     }
     
     
@@ -530,7 +554,7 @@ public class StoryManager : MonoBehaviour
         
     }
     
-    public void StoryPointTriggered(GameObject storyPoint, bool triggerOnly)
+    public void StoryPointTriggered(GameObject storyPoint, bool triggerOnly, bool firstTime = true)
     {
         if (!triggerOnly)
         {
@@ -538,7 +562,12 @@ public class StoryManager : MonoBehaviour
             AudioClip audioClip = storyObject.storyAudioClip;
             Vector3 position = storyObject.transform.position;
             PlayStoryAudio(audioClip, position);
-            CheckStory(true);
+            
+            if (firstTime)
+            {
+                CheckStory(true);
+            }
+            
         }
         else
         {
@@ -598,7 +627,7 @@ public class StoryManager : MonoBehaviour
         yield return new WaitForSeconds(2f);
             
         //Write Text
-        storyText.text = "»Over a seven-day stint, we follow a character named LORD God as he creates the heavens, the earth, and everything in between […]. <br><br> He then goes on to form […] a male human. After breathing life into this man’s nostrils, he hovers eastward to Eden, not too far from Ethiopia. <br><br>There, LORD God plants […] a […] colourful garden with birds and bees, flowers and trees. […]«";
+        storyText.text = "»Over a seven-day stint, we follow a character named LORD God as he creates the heavens, the earth, and everything in between […]. He then goes on to form […] a male human.<br><br> After breathing life into this man’s nostrils, he hovers eastward to Eden, not too far from Ethiopia. There, LORD God plants […] a […] colourful garden with birds and bees, flowers and trees. […]«";
             
         storyText.DOFade(0f, 0f);
         textHolder.DOFade(1f, 0f);
@@ -611,7 +640,7 @@ public class StoryManager : MonoBehaviour
             
         storyText.DOFade(0f, 1.5f);
         yield return new WaitForSeconds(1.5f);
-        storyText.text = "In this heavenly abode of great beauty, he drops the unnamed man, for him ‘to dress it and to keep it’ <br>(Genesis 2:15). <br><br> […] he makes the gardener ‘an help’ from the man’s rib […]. From then on, the gardener is referred to as Adam and accompanied by a female assistant gardener who, we later learn, is called Eve.«<br><br> – Patricia de Vries (Against Gardening, 2021) –";
+        storyText.text = "In this heavenly abode of great beauty, he drops the unnamed man, for him ‘to dress it and to keep it’ (Genesis 2:15).[…] <br><br>He makes the gardener ‘an help’ from the man’s rib […]. From then on, the gardener is referred to as Adam and accompanied by a female assistant gardener who, we later learn, is called Eve.«<br><br> – Patricia de Vries (Against Gardening, 2021) –";
         storyText.DOFade(1f, 1.5f);
         yield return new WaitForSeconds(28f);
             
@@ -779,7 +808,7 @@ public class StoryManager : MonoBehaviour
         
                 storyText.DOFade(1f, 1.5f);
                 yield return new WaitForSeconds(1f);
-                narrationAudioPlayer.PlayOneShot(tricksterQuestion, narrationVolume);
+                PlayStoryAudio(tricksterQuestion, new Vector3(100,100,100), true);  
         
                 yield return new WaitForSeconds(tricksterQuestion.length - 1f);
                 answerTextField1.DOFade(1f, 1.5f);
@@ -952,6 +981,47 @@ public class StoryManager : MonoBehaviour
         blackScreen.DOFade(1f, 0f);
         creditsHolder.DOFade(1f, fadeScreenDuration);
         yield break;
+    }
+
+
+
+    // Start Game Screen
+    private  IEnumerator StartScreen()
+    {
+        gardenStoryCount = 5;
+        taubenschlagStoryCount = 7;
+        pidgeonStoryCount = 6;
+        tricksterStoryCount = 4;
+        altGardenStoryCount = 3;
+        
+        startScreen.gameObject.SetActive(true);
+        yield return new WaitForSeconds(2f);
+        
+        blackScreen.DOFade(0f, fadeScreenDuration);
+        yield return new WaitForSeconds(fadeScreenDuration + 1f);
+
+        readyToStartGame = true;
+
+        yield return new WaitUntil(() => !useStartScreen);
+        blackScreen.DOFade(1f, fadeScreenDuration);
+        startScreen.transform.Find("AudioPlayer_Start").GetComponent<AudioSource>().DOFade(0f, fadeScreenDuration);
+        
+        yield return new WaitForSeconds(fadeScreenDuration + 1f);
+        startScreen.gameObject.SetActive(false);
+        
+        
+        SwitchChapter(0, false);
+        menuManager.StartGame();
+        
+    }
+    
+    private void StartGame()
+    {
+        if (!readyToStartGame)
+            return;
+        
+        readyToStartGame = false;
+        useStartScreen = false;
     }
     
     #endregion
