@@ -34,7 +34,7 @@ public class MenuManager : MonoBehaviour
     private bool navigationProcessing;
     
     // State tracking
-    private bool gameHasStarted;
+    private bool menuIsUsable;
     bool menuIsOpen;
     private int currentMenuPage;
     private int currentSelection;
@@ -98,13 +98,18 @@ public class MenuManager : MonoBehaviour
         }
     }
 
-    public void StartGame()
+    public void MakeMenuUsable()
     {
-        gameHasStarted = true;
+        menuIsUsable = true;
+    }
+    
+    public void MakeMenuNotUsable()
+    {
+        menuIsUsable = false;
     }
     private void OpenMenu()
     {
-        if (!gameHasStarted)
+        if (!menuIsUsable)
             return;
         
         if (menuIsOpen)
@@ -275,9 +280,15 @@ public class MenuManager : MonoBehaviour
                     case 1: // -> Controls
                         StartCoroutine(SwitchMenuPage(2, true));
                         break;
-                    case 2: // -> Settings
-                        StartCoroutine(SwitchMenuPage(3, true));
+                    case 2: // -> Credits
+                        OpenMenu(); // Close Menu
+                        StoryManager.Instance.ResetGame(true);
                         break;
+                    case 3: // -> Restart
+                        OpenMenu(); // Close Menu
+                        StoryManager.Instance.ResetGame();
+                        break;
+                    
                 }
 
                 break;

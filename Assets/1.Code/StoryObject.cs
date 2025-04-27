@@ -72,10 +72,18 @@ public class StoryObject : MonoBehaviour
         modelMaterial.DOColor(Color.black, "_Tint", 0f);
     }
 
-    public void ChapterStart()
+    public void ChapterStart(bool invert = false)
     {
         hasBeenTriggered = false;
-        modelMaterial.DOColor(Color.white, "_Tint", 2f);
+        if (!invert)
+        {
+            modelMaterial.DOColor(Color.white, "_Tint", 2f); 
+        }
+        else
+        {
+            modelMaterial.DOColor(Color.black, "_Tint", 2f);
+        }
+        
     }
 
     public void OnInteract()

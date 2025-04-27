@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.Video;
 using VInspector;
 using VInspector.Libs;
@@ -39,6 +40,8 @@ public class StoryManager : MonoBehaviour
     [Header("Transition Settings")]
     [Tooltip("Duration of screen fade transitions")]
     [SerializeField] private float fadeScreenDuration = 2f;
+    [SerializeField] private float controlsDisplayDuration = 5f;
+    [SerializeField] private float creditDuration = 60f;
     
     [Header("Specific Story Settings")]
     [SerializeField] private int gardenStoryCount = 5;
@@ -46,6 +49,8 @@ public class StoryManager : MonoBehaviour
     [SerializeField] private int pidgeonStoryCount = 6;
     [SerializeField] private int tricksterStoryCount = 4;
     [SerializeField] private int altGardenStoryCount = 3;
+
+    [SerializeField] private bool neinGartenInvert;
 
     
     [EndTab]
@@ -61,6 +66,7 @@ public class StoryManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI answerTextField1;
     [SerializeField] private TextMeshProUGUI answerTextField2;
     [SerializeField] private CanvasGroup creditsHolder;
+    [SerializeField] private TextMeshProUGUI controlerText;
     
     [Header("Player References")]
     [SerializeField] private InputActionAsset inputActions;
@@ -92,6 +98,11 @@ public class StoryManager : MonoBehaviour
     [Header("Camera References")] 
     [SerializeField] private Camera farewellCam;
     [SerializeField] private GameObject farewellTargetPos;
+
+    [Header("Invert References")] 
+    [SerializeField] private GameObject floor;
+    [SerializeField] private PostProcessProfile PPvolume;
+    
     
     public enum Chapter
     {
@@ -104,7 +115,8 @@ public class StoryManager : MonoBehaviour
         EMBRYO,
         FAREWELL,
         EPILOG,
-        GARTEN_ALTERNATIVE
+        GARTEN_ALTERNATIVE,
+        CREDITS
     }
     
     [Header("Chapter References")]
@@ -138,6 +150,9 @@ public class StoryManager : MonoBehaviour
     [Tooltip("GameObject containing Chapter 9 content")]
     public GameObject chapter9;
     
+    [Tooltip("GameObject containing Chapter 9 content")]
+    public GameObject chapter10;
+    
     [Space]
     public GameObject startScreen;
     [Header("Specific Story Elements")]
@@ -158,6 +173,7 @@ public class StoryManager : MonoBehaviour
     private int currentChapter;
     private bool chapterIsFadingOut;
     private bool readyToStartGame;
+    private float originalBloomAmount;
     
     //Story Audio tracking
     private bool isStoryPlaying;
@@ -206,8 +222,16 @@ public class StoryManager : MonoBehaviour
             chapter6,
             chapter7,
             chapter8,
-            chapter9
+            chapter9,
+            chapter10
         };
+        
+        
+        if (PPvolume.TryGetSettings(out Bloom bloom))
+        {
+            originalBloomAmount = bloom.intensity.value;
+            Debug.Log("Bloom intensity: " + originalBloomAmount);
+        }
         
         SetupInputActions();
     }
@@ -255,7 +279,6 @@ public class StoryManager : MonoBehaviour
         }
         else
         {
-            menuManager.StartGame();
             SwitchChapter(chapter, true);
         }
         
@@ -313,6 +336,7 @@ public class StoryManager : MonoBehaviour
         answerTextField1.DOFade(0f, 0f);
         answerTextField2.DOFade(0f, 0f);
         creditsHolder.DOFade(0f, 0f);
+        controlerText.DOFade(0f, 0f);
     }
 
     private void Update()
@@ -454,23 +478,15 @@ public class StoryManager : MonoBehaviour
         currentChapter = chapter;
         internalChapterProgress = 0;
         Debug.Log("Switching to Chapter_" + currentChapter);
-
-        if (chapter != 0 && chapter != 8)
+        
+        for (int i = 0; i < chapters.Length; i++)
         {
-            //Deactivate Old Chapter
-            chapters[chapter - 1].SetActive(false);
-        }
-
-        if (chapter == 9)
-        {
-            //Deactivate Taubenschlag
-            chapters[3].SetActive(false);
-        }
-
-        if (chapter == 4)
-        {
-            //Deactivate Alt Garten
-            chapters[9].SetActive(false);
+            if (chapters[i] != null)
+            {
+                
+                chapters[i].SetActive(false);
+                
+            }
         }
         
         //Make sure that all Atmo Volumes are reset
@@ -499,7 +515,7 @@ public class StoryManager : MonoBehaviour
         {
             SwitchPlayerController(bug);
         }
-        else if (chapter == 6 || chapter == 7)
+        else if (chapter == 6 || chapter == 7 || chapter == 8 || chapter == 10)
         {
             // Deactivate all controllers
             human.SetActive(false);
@@ -536,7 +552,16 @@ public class StoryManager : MonoBehaviour
             for (int j = 0; j < storypointHolder.transform.childCount; j++)
             {
                 StoryObject nextStorypoint = storypointHolder.transform.GetChild(j).GetComponent<StoryObject>();
-                nextStorypoint.ChapterStart();
+                if (chapter != 9 || !neinGartenInvert)
+                {
+                    nextStorypoint.ChapterStart();
+                }
+                else
+                {
+                    // Invert Color for nein Garten invert
+                    nextStorypoint.ChapterStart(true);
+                }
+                
             }
         }
 
@@ -548,6 +573,27 @@ public class StoryManager : MonoBehaviour
         else if (chapter != 0 && chapter != 8)
         {
             blackScreen.DOFade(0f, fadeScreenDuration);
+        }
+        
+        // Can use Menu?
+        if (chapter != 0 && chapter != 8 && chapter != 7 && chapter != 10)
+        {
+            menuManager.MakeMenuUsable();
+        }
+        else
+        {
+            menuManager.MakeMenuNotUsable();
+        }
+        
+        if (chapter == 9 && neinGartenInvert) // Invert Garten colors (except objects)
+        {
+            if (PPvolume.TryGetSettings(out Bloom bloom))
+            {
+                bloom.intensity.value = 1f;
+            }
+
+            floor.GetComponent<MeshRenderer>().material.DOColor(Color.white, 0f);
+            human.transform.Find("Human_Camera").GetComponent<Camera>().backgroundColor = new Color(1f, 1f, 1f);
         }
         
         CheckStory(false, true);
@@ -617,6 +663,9 @@ public class StoryManager : MonoBehaviour
             case 9:
                 StartCoroutine(Chapter9(chapterRestart)); //Garten Alt
                 break;
+            case 10:
+                StartCoroutine(Chapter10()); //Credits
+                break;
         }
     }
 
@@ -656,6 +705,15 @@ public class StoryManager : MonoBehaviour
         {
             yield return new WaitForSeconds(1f);
             playerController.UnlockInput();
+            yield return new WaitForSeconds(4f);
+            controlerText.text = "Drücke <b>A</b>, um 3D Scans zu aktivieren <br> Press <b>A</b> to activate 3D Scan";
+            controlerText.DOFade(1f, 0f);
+            textHolder.DOFade(1f, 1.5f);
+            
+            yield return new WaitForSeconds(controlsDisplayDuration);
+            textHolder.DOFade(0f, 1.5f);
+            yield return new WaitForSeconds(1.5f);
+            controlerText.DOFade(0f, 0f);
         }
         else if (triggerOnly)
         {
@@ -731,6 +789,9 @@ public class StoryManager : MonoBehaviour
                 storyText.text = "»Do you think they are individuals, like us?«";
                 answerTextField1.text = "»Yes«";
                 answerTextField2.text = "»No«";
+                
+                answerTextField1.fontStyle = FontStyles.Underline;
+                answerTextField2.fontStyle = FontStyles.Normal;
             
                 storyText.DOFade(0f, 0f);
                 textHolder.DOFade(1f, 0f);
@@ -780,6 +841,15 @@ public class StoryManager : MonoBehaviour
         {
             yield return new WaitForSeconds(1f);
             playerController.UnlockInput();
+            yield return new WaitForSeconds(2f);
+            controlerText.text = "Drücke <b>RT</b>, um zu fliegen <br> Press <b>RT</b> to fly";
+            controlerText.DOFade(1f, 0f);
+            textHolder.DOFade(1f, 1.5f);
+            
+            yield return new WaitForSeconds(controlsDisplayDuration);
+            textHolder.DOFade(0f, 1.5f);
+            yield return new WaitForSeconds(1.5f);
+            controlerText.DOFade(0f, 0f);
         }
         else
         {
@@ -802,6 +872,9 @@ public class StoryManager : MonoBehaviour
                 storyText.text = "»Do you know what a trickster is?«";
                 answerTextField1.text = "»Yes«";
                 answerTextField2.text = "»No«";
+                
+                answerTextField1.fontStyle = FontStyles.Underline;
+                answerTextField2.fontStyle = FontStyles.Normal;
         
                 storyText.DOFade(0f, 0f);
                 textHolder.DOFade(1f, 0f);
@@ -899,11 +972,13 @@ public class StoryManager : MonoBehaviour
         textHolder.DOFade(1f, 0f);
         storyText.text = "»After all, there is only ever a Garden of Eden for as long as there is a gardener who tends to it.«<br><br>– Patricia de Vries (Against Gardening, 2021) –";
         storyText.DOFade(1f, 2f);
-        yield return new WaitForSeconds(5f);
+        yield return new WaitForSeconds(1.5f);
+        PlayStoryAudio(epilogueAudio, new Vector3(100,100,100), true);  
+        yield return new WaitForSeconds(epilogueAudio.length + 1f);
         
         storyText.DOFade(0f, 2f);
         yield return new WaitForSeconds(4f);
-        StartCoroutine(Credits());
+        SwitchChapter(10, false); // Credits
         
     }
     
@@ -913,6 +988,7 @@ public class StoryManager : MonoBehaviour
         {
             yield return new WaitForSeconds(1f);
             playerController.UnlockInput();
+            
         }
         else
         {
@@ -930,11 +1006,25 @@ public class StoryManager : MonoBehaviour
                     .OnComplete(() => gardenAltAtmo.gameObject.SetActive(false));
                 yield return new WaitForSeconds(fadeScreenDuration);
                 
+                if (neinGartenInvert) // Reverse Invert Garten colors (except objects)
+                {
+                    if (PPvolume.TryGetSettings(out Bloom bloom))
+                    {
+                        bloom.intensity.value = originalBloomAmount;
+                    }
+
+                    floor.GetComponent<MeshRenderer>().material.DOColor(Color.black, 0f);
+                    human.transform.Find("Human_Camera").GetComponent<Camera>().backgroundColor = new Color(0f, 0f, 0f);
+                }
+                
             
                 //Write Question
                 storyText.text = "»Are you sure we aren't individuals like you?«";
                 answerTextField1.text = "»I'm not sure«";
                 answerTextField2.text = "»Yes«";
+                
+                answerTextField1.fontStyle = FontStyles.Underline;
+                answerTextField2.fontStyle = FontStyles.Normal;
             
                 storyText.DOFade(0f, 0f);
                 textHolder.DOFade(1f, 0f);
@@ -969,21 +1059,55 @@ public class StoryManager : MonoBehaviour
                 {
                     // Go to Garden alternative
                     yield return new WaitForSeconds(1f);
-                    StartCoroutine(Credits());
+                    SwitchChapter(10, false); // Credits
                     answer = 1;
                 }
             }
         }
+
     }
     
-    private IEnumerator Credits()
+    private IEnumerator Chapter10() //Credits
     {
+        Debug.Log("Run Credits");
         blackScreen.DOFade(1f, 0f);
-        creditsHolder.DOFade(1f, fadeScreenDuration);
-        yield break;
+        creditsHolder.DOFade(1f, 0f);
+        PlayStoryAudio(tricksterAtmo.clip, new Vector3(100,100,100), true);  
+        Transform credits = creditsHolder.transform.GetChild(0);
+        
+        credits.gameObject.SetActive(true);
+        Vector3 creditMoveTarget = new Vector3(credits.localPosition.x, credits.localPosition.y + 5800 , credits.localPosition.z);
+        creditsHolder.transform.GetChild(0).DOLocalMove(creditMoveTarget, creditDuration).SetEase(Ease.Linear);
+        
+        yield return new WaitForSeconds(creditDuration + 2f);
+        StoryAudioPlayerObject.GetComponent<AudioSource>().DOFade(0f, 3f);
+        yield return new WaitForSeconds(3.1f);
+        
+        ResetGame();
     }
+    
 
+    public void ResetGame(bool credits = false)
+    {
+        internalChapterProgress = 0;
+        isStoryPlaying = false;
+        questionActive = false;
+        Destroy(StoryAudioPlayerObject);
+        readyToStartGame = false;
+        
+        useStartScreen = true;
 
+        if (credits)
+        {
+            SwitchChapter(10, false); // Credits
+        }
+        else
+        {
+            StartNewGame(0);
+        }
+        
+
+    }
 
     // Start Game Screen
     private  IEnumerator StartScreen()
@@ -993,7 +1117,10 @@ public class StoryManager : MonoBehaviour
         pidgeonStoryCount = 6;
         tricksterStoryCount = 4;
         altGardenStoryCount = 3;
+
+        internalChapterProgress = 0;
         
+        menuManager.MakeMenuNotUsable();
         startScreen.gameObject.SetActive(true);
         yield return new WaitForSeconds(2f);
         
@@ -1011,7 +1138,7 @@ public class StoryManager : MonoBehaviour
         
         
         SwitchChapter(0, false);
-        menuManager.StartGame();
+        
         
     }
     
