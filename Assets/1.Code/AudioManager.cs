@@ -24,6 +24,8 @@ public class AudioManager : MonoBehaviour
     public int tricksterAttenuation = 0;
     [Range(-80, 20)]
     public int embryoAttenuation = 0;
+    [Range(-80, 20)]
+    public int neinGartenAttenuation = 0;
     
     [Button("Set Attenuation")]
     public void button()
@@ -53,5 +55,6 @@ public class AudioManager : MonoBehaviour
         audioMixer.SetFloat("PidgeonVol", (pidgeonAttenuation));
         audioMixer.SetFloat("TricksterVol", (tricksterAttenuation));
         audioMixer.SetFloat("EmbryoVol", (embryoAttenuation));
+        audioMixer.SetFloat("NeinGartenVol", (neinGartenAttenuation));
     }
 }

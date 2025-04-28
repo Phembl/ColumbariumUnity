@@ -689,7 +689,7 @@ public class StoryManager : MonoBehaviour
             
         storyText.DOFade(0f, 1.5f);
         yield return new WaitForSeconds(1.5f);
-        storyText.text = "In this heavenly abode of great beauty, he drops the unnamed man, for him ‘to dress it and to keep it’ (Genesis 2:15).[…] <br><br>He makes the gardener ‘an help’ from the man’s rib […]. From then on, the gardener is referred to as Adam and accompanied by a female assistant gardener who, we later learn, is called Eve.«<br><br> – Patricia de Vries (Against Gardening, 2021) –";
+        storyText.text = "In this heavenly abode of great beauty, he drops the unnamed man, for him ›to dress it and to keep it‹ (Genesis 2:15).[…] <br><br>He makes the gardener ›an help‹ from the man’s rib […]. From then on, the gardener is referred to as Adam and accompanied by a female assistant gardener who, we later learn, is called Eve.«<br><br> – Patricia de Vries (Against Gardening, 2021) –";
         storyText.DOFade(1f, 1.5f);
         yield return new WaitForSeconds(28f);
             
@@ -706,7 +706,7 @@ public class StoryManager : MonoBehaviour
             yield return new WaitForSeconds(1f);
             playerController.UnlockInput();
             yield return new WaitForSeconds(4f);
-            controlerText.text = "Drücke <b>A</b>, um 3D Scans zu aktivieren <br> Press <b>A</b> to activate 3D Scan";
+            controlerText.text = "Gehe zum objek und drücke <b>A</b>, um 3D Scans zu aktivieren <br> Go to object and press <b>A</b> to activate 3D Scan";
             controlerText.DOFade(1f, 0f);
             textHolder.DOFade(1f, 1.5f);
             
@@ -1125,7 +1125,7 @@ public class StoryManager : MonoBehaviour
         yield return new WaitForSeconds(2f);
         
         blackScreen.DOFade(0f, fadeScreenDuration);
-        yield return new WaitForSeconds(fadeScreenDuration + 1f);
+        yield return new WaitForSeconds(fadeScreenDuration + 0.5f);
 
         readyToStartGame = true;
 
