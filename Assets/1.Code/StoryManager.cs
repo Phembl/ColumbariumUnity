@@ -8,7 +8,6 @@ using UnityEngine.InputSystem;
 using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.Video;
 using VInspector;
-using VInspector.Libs;
 
 /// <summary>
 /// Manages story interactions in the game world.
@@ -931,7 +930,7 @@ public class StoryManager : MonoBehaviour
     
     private IEnumerator Chapter6(bool chapterRestart) //Embryo
     {
-        float videoPlayTime = embryoVideoPlayer.clip.length.ToFloat();
+        float videoPlayTime = (float)embryoVideoPlayer.clip.length;
         if (videoPlayTime > 0) Debug.Log(videoPlayTime);
             
         yield return new WaitForSeconds(videoPlayTime - (fadeScreenDuration + 1));
@@ -1042,7 +1041,7 @@ public class StoryManager : MonoBehaviour
                 questionActive = true;
                 yield return new WaitUntil(() => !questionActive);
                 
-                altGartenQuestionAudioplayer.GetComponent<AudioSource>().DOFade(0f, 1.5f).OnComplete(() => altGartenQuestionAudioplayer.Destroy());;
+                altGartenQuestionAudioplayer.GetComponent<AudioSource>().DOFade(0f, 1.5f).OnComplete(() => Destroy(altGartenQuestionAudioplayer));
                 answerTextField1.DOFade(0f, 1.5f);
                 answerTextField2.DOFade(0f, 1.5f);
                 storyText.DOFade(0f, 1.5f);

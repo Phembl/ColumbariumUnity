@@ -1862,7 +1862,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d70dcb1ba5597a6438d8f25d43034b6f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  useStartScreen: 0
+  useStartScreen: 1
   startingChapter: 9
   fadeScreenDuration: 2
   controlsDisplayDuration: 5
