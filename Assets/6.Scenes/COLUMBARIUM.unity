@@ -1862,8 +1862,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d70dcb1ba5597a6438d8f25d43034b6f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  useStartScreen: 1
-  startingChapter: 0
+  useStartScreen: 0
+  startingChapter: 2
   fadeScreenDuration: 2
   controlsDisplayDuration: 5
   creditDuration: 90
@@ -27672,15 +27672,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   audioMixer: {fileID: 24100000, guid: e71ab8de538c44c4f9126980de2c4054, type: 2}
-  voiceAttenuation: -16
-  storyAttenuation: -16
+  voiceAttenuation: -19
+  storyAttenuation: -19
   nichtsAttenuation: 0
   gartenAttenuation: 0
-  taubenschlagAttenuation: -5
+  taubenschlagAttenuation: 0
   pidgeonAttenuation: 0
-  tricksterAttenuation: -5
+  tricksterAttenuation: 0
   embryoAttenuation: 0
-  neinGartenAttenuation: -5
+  neinGartenAttenuation: 0
 --- !u!4 &1590289374
 Transform:
   m_ObjectHideFlags: 0
