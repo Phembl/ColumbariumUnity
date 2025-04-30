@@ -172,6 +172,7 @@ public class StoryManager : MonoBehaviour
     private int currentChapter;
     private bool chapterIsFadingOut;
     private bool readyToStartGame;
+    private bool gameHasStarted;
     private float originalBloomAmount;
     
     //Story Audio tracking
@@ -688,7 +689,7 @@ public class StoryManager : MonoBehaviour
             
         storyText.DOFade(0f, 1.5f);
         yield return new WaitForSeconds(1.5f);
-        storyText.text = "In this heavenly abode of great beauty, he drops the unnamed man, for him ›to dress it and to keep it‹ (Genesis 2:15).[…] <br><br>He makes the gardener ›an help‹ from the man’s rib […]. From then on, the gardener is referred to as Adam and accompanied by a female assistant gardener who, we later learn, is called Eve.«<br><br> – Patricia de Vries (Against Gardening, 2021) –";
+        storyText.text = "In this heavenly abode of great beauty, he drops the unnamed man, for him ›to dress it and to keep it‹ <br>(Genesis 2:15).[…] <br><br>He makes the gardener ›an help‹ from the man’s rib […]. From then on, the gardener is referred to as Adam and accompanied by a female assistant gardener who, we later learn, is called Eve.«<br><br> – Patricia de Vries (Against Gardening, 2021) –";
         storyText.DOFade(1f, 1.5f);
         yield return new WaitForSeconds(28f);
             
@@ -1127,8 +1128,9 @@ public class StoryManager : MonoBehaviour
         yield return new WaitForSeconds(fadeScreenDuration + 0.5f);
 
         readyToStartGame = true;
-
-        yield return new WaitUntil(() => !useStartScreen);
+        gameHasStarted = false;
+        
+        yield return new WaitUntil(() => gameHasStarted);
         blackScreen.DOFade(1f, fadeScreenDuration);
         startScreen.transform.Find("AudioPlayer_Start").GetComponent<AudioSource>().DOFade(0f, fadeScreenDuration);
         
@@ -1148,6 +1150,8 @@ public class StoryManager : MonoBehaviour
         
         readyToStartGame = false;
         useStartScreen = false;
+        
+        gameHasStarted = true;
     }
     
     #endregion
