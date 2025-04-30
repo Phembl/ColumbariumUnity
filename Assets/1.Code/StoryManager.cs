@@ -41,8 +41,9 @@ public class StoryManager : MonoBehaviour
     [SerializeField] private float fadeScreenDuration = 2f;
     [SerializeField] private float controlsDisplayDuration = 5f;
     [SerializeField] private float creditDuration = 60f;
-    
-    [Header("Specific Story Settings")]
+
+    [Header("Story Settings")] 
+    [SerializeField] private bool showScanCounter;
     [SerializeField] private int gardenStoryCount = 5;
     [SerializeField] private int taubenschlagStoryCount = 7;
     [SerializeField] private int pidgeonStoryCount = 6;
@@ -66,6 +67,9 @@ public class StoryManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI answerTextField2;
     [SerializeField] private CanvasGroup creditsHolder;
     [SerializeField] private TextMeshProUGUI controlerText;
+    [SerializeField] private CanvasGroup scanTextHolder;
+    [SerializeField] private TextMeshProUGUI scanText1;
+    [SerializeField] private TextMeshProUGUI scanText2;
     
     [Header("Player References")]
     [SerializeField] private InputActionAsset inputActions;
@@ -174,6 +178,7 @@ public class StoryManager : MonoBehaviour
     private bool readyToStartGame;
     private bool gameHasStarted;
     private float originalBloomAmount;
+    private int chapterStoryobjectCount;
     
     //Story Audio tracking
     private bool isStoryPlaying;
@@ -265,6 +270,10 @@ public class StoryManager : MonoBehaviour
     
     private void Start()
     {
+        if (!showScanCounter)
+        {
+            scanTextHolder.gameObject.SetActive(false);
+        }
         StartNewGame((int)startingChapter);
     }
 
@@ -337,6 +346,7 @@ public class StoryManager : MonoBehaviour
         answerTextField2.DOFade(0f, 0f);
         creditsHolder.DOFade(0f, 0f);
         controlerText.DOFade(0f, 0f);
+        scanTextHolder.DOFade(0f, 0f);
     }
 
     private void Update()
@@ -359,6 +369,7 @@ public class StoryManager : MonoBehaviour
         player = mode;
         player.SetActive(true);
         playerController = player.GetComponent<BasePlayerController>();
+        
     }
 
     public void PauseGame()
@@ -477,6 +488,7 @@ public class StoryManager : MonoBehaviour
     {
         currentChapter = chapter;
         internalChapterProgress = 0;
+        
         Debug.Log("Switching to Chapter_" + currentChapter);
         
         for (int i = 0; i < chapters.Length; i++)
@@ -546,7 +558,8 @@ public class StoryManager : MonoBehaviour
         }
         
         GameObject storypointHolder = chapters[chapter].transform.Find("Storypoints").GameObject();
-                
+
+        chapterStoryobjectCount = 0;
         if (storypointHolder != null)
         {
             for (int j = 0; j < storypointHolder.transform.childCount; j++)
@@ -561,7 +574,9 @@ public class StoryManager : MonoBehaviour
                     // Invert Color for nein Garten invert
                     nextStorypoint.ChapterStart(true);
                 }
-                
+
+                chapterStoryobjectCount++;
+
             }
         }
 
@@ -706,7 +721,7 @@ public class StoryManager : MonoBehaviour
             yield return new WaitForSeconds(1f);
             playerController.UnlockInput();
             yield return new WaitForSeconds(4f);
-            controlerText.text = "Gehe zum objek und drücke <b>A</b>, um 3D Scans zu aktivieren <br> Go to object and press <b>A</b> to activate 3D Scan";
+            controlerText.text = "Gehe zum Objekt und drücke <b>A</b>, um 3D Scans zu aktivieren <br> Go to object and press <b>A</b> to activate 3D Scan";
             controlerText.DOFade(1f, 0f);
             textHolder.DOFade(1f, 1.5f);
             
@@ -714,6 +729,9 @@ public class StoryManager : MonoBehaviour
             textHolder.DOFade(0f, 1.5f);
             yield return new WaitForSeconds(1.5f);
             controlerText.DOFade(0f, 0f);
+            
+            yield return new WaitForSeconds(1f);
+            ShowScanText("Part I: NICHTS", true);
         }
         else if (triggerOnly)
         {
@@ -721,6 +739,10 @@ public class StoryManager : MonoBehaviour
             // Setup correct Text for missing Scans
             taubenschlagDoorText.text = $"{gardenStoryCount} Scans fehlen.";
             SwitchChapter(2,false);
+        }
+        else // StoryPoint only
+        {
+            ShowScanText("Part I: NICHTS", false);
         }
    
     }
@@ -731,19 +753,26 @@ public class StoryManager : MonoBehaviour
         {
             yield return new WaitForSeconds(1f);
             playerController.UnlockInput();
+            
+            yield return new WaitForSeconds(1f);
+            ShowScanText("Part II: PARADISE GARDEN", true);
         }
-        else if (triggerOnly)
+        else if (triggerOnly) // From Garden to Taubenschlag
         {
             yield return new WaitForSeconds(0.1f);
             playerController.LockInput();
             blackScreen.DOFade(1f, 1f);
+            scanTextHolder.DOFade(0f, 1f);
             gartenAtmo1.DOFade(0f, 2f).OnComplete(() => gartenAtmo1.gameObject.SetActive(false));
             gartenAtmo2.DOFade(0f, 2f).OnComplete(() => gartenAtmo2.gameObject.SetActive(false));
             yield return new WaitForSeconds(1f);
+            
             SwitchChapter(3,true);
         }
         else
         {
+            ShowScanText("Part II: PARADISE GARDEN", false);
+            
             if (internalChapterProgress < gardenStoryCount)
             {
                 if (gardenStoryCount - internalChapterProgress == 1)taubenschlagDoorText.text = $"{gardenStoryCount - internalChapterProgress} Scan fehlt.";
@@ -767,9 +796,14 @@ public class StoryManager : MonoBehaviour
         {
             yield return new WaitForSeconds(1f);
             playerController.UnlockInput();
+            
+            yield return new WaitForSeconds(1f);
+            ShowScanText("Part III: DER TAUBENSCHLAG", true);
         }
         else
         {
+            ShowScanText("Part III: DER TAUBENSCHLAG", false);
+            
             if (internalChapterProgress == taubenschlagStoryCount)
             {
                 float waitForAudioEndTime = StoryAudioPlayerObject.GetComponent<AudioSource>().clip.length + 1f;
@@ -781,6 +815,7 @@ public class StoryManager : MonoBehaviour
             
                 playerController.LockInput();
                 blackScreen.DOFade(1f, fadeScreenDuration);
+                scanTextHolder.DOFade(0f, fadeScreenDuration);
                 taubenSchlagAtmo.DOFade(0f, fadeScreenDuration).OnComplete(() => taubenSchlagAtmo.gameObject.SetActive(false));
                 yield return new WaitForSeconds(fadeScreenDuration);
                 
@@ -850,9 +885,13 @@ public class StoryManager : MonoBehaviour
             textHolder.DOFade(0f, 1.5f);
             yield return new WaitForSeconds(1.5f);
             controlerText.DOFade(0f, 0f);
+            
+            yield return new WaitForSeconds(1.5f);
+            ShowScanText("Part IV: BECOMING PIGEON", true);
         }
         else
         {
+            ShowScanText("Part IV: BECOMING PIGEON", false);
             //Switch to Bug Chapter
             if (internalChapterProgress == pidgeonStoryCount)
             {
@@ -864,6 +903,7 @@ public class StoryManager : MonoBehaviour
                 
                 playerController.LockInput();
                 blackScreen.DOFade(1f, fadeScreenDuration);
+                scanTextHolder.DOFade(0f, fadeScreenDuration);
                 pidgeonFlugAtmo.DOFade(0f, fadeScreenDuration);
                 yield return new WaitForSeconds(fadeScreenDuration);
                 
@@ -908,9 +948,13 @@ public class StoryManager : MonoBehaviour
         {
             yield return new WaitForSeconds(1f);
             playerController.UnlockInput();
+            ShowScanText("Part V: BE A TRICKSTER, BUILD A WORLD", true);
         }
         else
         {
+            
+            ShowScanText("Part V: BE A TRICKSTER, BUILD A WORLD", false);
+            
             if (internalChapterProgress == tricksterStoryCount)
             {
                 
@@ -921,6 +965,7 @@ public class StoryManager : MonoBehaviour
                 
                 playerController.LockInput();
                 blackScreen.DOFade(1f, fadeScreenDuration);
+                scanTextHolder.DOFade(0f, fadeScreenDuration);
                 tricksterAtmo.DOFade(0f, fadeScreenDuration).OnComplete(() => tricksterAtmo.gameObject.SetActive(false));
                 yield return new WaitForSeconds(fadeScreenDuration + 2f);
 
@@ -988,10 +1033,13 @@ public class StoryManager : MonoBehaviour
         {
             yield return new WaitForSeconds(1f);
             playerController.UnlockInput();
+            ShowScanText("Part II: PARADISE GARDEN II", true);
             
         }
         else
         {
+            ShowScanText("Part II: PARADISE GARDEN II", false);
+            
             if (internalChapterProgress == altGardenStoryCount)
             {
                 
@@ -1002,6 +1050,7 @@ public class StoryManager : MonoBehaviour
             
                 playerController.LockInput();
                 blackScreen.DOFade(1f, fadeScreenDuration);
+                scanTextHolder.DOFade(0f, fadeScreenDuration);
                 gardenAltAtmo.DOFade(0f, fadeScreenDuration)
                     .OnComplete(() => gardenAltAtmo.gameObject.SetActive(false));
                 yield return new WaitForSeconds(fadeScreenDuration);
@@ -1094,6 +1143,7 @@ public class StoryManager : MonoBehaviour
         questionActive = false;
         Destroy(StoryAudioPlayerObject);
         readyToStartGame = false;
+        chapterStoryobjectCount = 0;
         
         useStartScreen = true;
 
@@ -1115,10 +1165,11 @@ public class StoryManager : MonoBehaviour
         gardenStoryCount = 5;
         taubenschlagStoryCount = 7;
         pidgeonStoryCount = 6;
-        tricksterStoryCount = 4;
+        tricksterStoryCount = 5;
         altGardenStoryCount = 3;
 
         internalChapterProgress = 0;
+        chapterStoryobjectCount = 0;
         
         menuManager.MakeMenuNotUsable();
         startScreen.gameObject.SetActive(true);
@@ -1155,5 +1206,13 @@ public class StoryManager : MonoBehaviour
     }
     
     #endregion
+
+    private void ShowScanText(string text, bool fade = false)
+    {
+        scanText1.text = text;
+        scanText2.text = $"3D Scans {internalChapterProgress}/{chapterStoryobjectCount}";
+        if (fade) scanTextHolder.DOFade(1f, 1.5f);
+        else  scanTextHolder.DOFade(1f, 0f);
+    }
     
 }
