@@ -3310,7 +3310,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: part II
+  m_text: 'Part I: NICHTS'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
   m_sharedMaterial: {fileID: -8778198912931330615, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
@@ -6290,6 +6290,14 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7848474886836091434, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.1825
+      objectReference: {fileID: 0}
+    - target: {fileID: 7848474886836091434, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.2538288
+      objectReference: {fileID: 0}
+    - target: {fileID: 7848474886836091434, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_LocalPosition.y
       value: 0.16
       objectReference: {fileID: 0}
@@ -8525,7 +8533,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: part III
+  m_text: 'Part II: PARADISE GARDEN'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
   m_sharedMaterial: {fileID: -8778198912931330615, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
@@ -9966,7 +9974,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: part IV
+  m_text: 'Part III: TAUBENSCHLAG'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
   m_sharedMaterial: {fileID: -8778198912931330615, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
@@ -13449,7 +13457,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: part VIII
+  m_text: 'Part VII: FAREWELL'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
   m_sharedMaterial: {fileID: -8778198912931330615, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
@@ -13624,16 +13632,24 @@ PrefabInstance:
       value: StoryPoint_5
       objectReference: {fileID: 0}
     - target: {fileID: 7848474886836091434, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.4238824
+      objectReference: {fileID: 0}
+    - target: {fileID: 7848474886836091434, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.3974
+      objectReference: {fileID: 0}
+    - target: {fileID: 7848474886836091434, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.28
+      value: -0.11
       objectReference: {fileID: 0}
     - target: {fileID: 7848474886836091434, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.043
+      value: 1.04
       objectReference: {fileID: 0}
     - target: {fileID: 7848474886836091434, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.53
+      value: 0.43
       objectReference: {fileID: 0}
     - target: {fileID: 7848474886836091434, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_LocalRotation.w
@@ -14326,7 +14342,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: part VII
+  m_text: 'Part VI: EMBRYO'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
   m_sharedMaterial: {fileID: -8778198912931330615, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
@@ -14691,8 +14707,8 @@ Transform:
   m_GameObject: {fileID: 780415779}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.79624206, z: -0, w: 0.60497814}
-  m_LocalPosition: {x: 0.397, y: 0.16000003, z: -1.339}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0.428, y: 0.3, z: -1.228}
+  m_LocalScale: {x: 1.1693, y: 1.3173, z: 1.1262}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 66876740}
@@ -17081,7 +17097,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: part V
+  m_text: 'Part IV: BECOMING PIGEON'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
   m_sharedMaterial: {fileID: -8778198912931330615, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
@@ -18081,7 +18097,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: part VI
+  m_text: 'Part V: BE A TRICKSTER, BUILD A WORLD.'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
   m_sharedMaterial: {fileID: -8778198912931330615, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
@@ -24748,7 +24764,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: part IX
+  m_text: Epilog
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
   m_sharedMaterial: {fileID: -8778198912931330615, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
@@ -27684,15 +27700,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   audioMixer: {fileID: 24100000, guid: e71ab8de538c44c4f9126980de2c4054, type: 2}
-  voiceAttenuation: -19
-  storyAttenuation: -19
+  voiceAttenuation: -15
+  storyAttenuation: -15
   nichtsAttenuation: 0
   gartenAttenuation: 0
-  taubenschlagAttenuation: 0
-  pidgeonAttenuation: 0
+  taubenschlagAttenuation: -5
+  pidgeonAttenuation: -3
   tricksterAttenuation: 0
   embryoAttenuation: 0
-  neinGartenAttenuation: 0
+  neinGartenAttenuation: -5
 --- !u!4 &1590289374
 Transform:
   m_ObjectHideFlags: 0
@@ -28315,7 +28331,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: part III / alt
+  m_text: Alternative Paradise Garden
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
   m_sharedMaterial: {fileID: -8778198912931330615, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
@@ -28348,7 +28364,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 2
   m_HorizontalAlignment: 4
   m_VerticalAlignment: 512
   m_textAlignment: 65535
@@ -30655,7 +30671,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: part I
+  m_text: Prolog
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
   m_sharedMaterial: {fileID: -8778198912931330615, guid: 777f8381d0fd9c941b91ef27fc51e681, type: 2}
@@ -30688,7 +30704,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 4
+  m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
   m_textAlignment: 65535
@@ -34372,7 +34388,7 @@ MonoBehaviour:
   interactionLayer:
     serializedVersion: 2
     m_Bits: 512
-  walkSpeed: 4
+  walkSpeed: 3
 --- !u!136 &2082137173
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -35401,7 +35417,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6585114388865157965, guid: ef1d02fe71d5663409e5ccdc7b55b631, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6733901534774506993, guid: ef1d02fe71d5663409e5ccdc7b55b631, type: 3}
       propertyPath: m_LocalPosition.x
