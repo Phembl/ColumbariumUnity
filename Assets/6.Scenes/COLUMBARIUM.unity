@@ -3498,7 +3498,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6585114388865157965, guid: ef1d02fe71d5663409e5ccdc7b55b631, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6733901534774506993, guid: ef1d02fe71d5663409e5ccdc7b55b631, type: 3}
       propertyPath: m_LocalPosition.x
@@ -6047,15 +6047,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8224009723022419143, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1011.714
+      value: -1012.639
       objectReference: {fileID: 0}
     - target: {fileID: 8224009723022419143, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -41.08
+      value: -41.023
       objectReference: {fileID: 0}
     - target: {fileID: 8224009723022419143, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -1007.198
+      value: -1006.396
       objectReference: {fileID: 0}
     - target: {fileID: 8224009723022419143, guid: c800375dfcf2b054db4f0d8af5576733, type: 3}
       propertyPath: m_LocalRotation.w
@@ -34381,7 +34381,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cameraTransform: {fileID: 1310303195}
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  lookSensitivity: 3
+  lookSensitivity: 1.5
   maxLookUp: 75
   maxLookDown: -75
   interactionRange: 3
