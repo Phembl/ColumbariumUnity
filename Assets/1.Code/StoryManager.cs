@@ -281,6 +281,8 @@ public class StoryManager : MonoBehaviour
     {
         StartCoroutine(LoadGame());
         InitUI();
+        SetupInputActions();
+        inputActions.Enable();
         
         if (useStartScreen)
         {
@@ -1018,7 +1020,7 @@ public class StoryManager : MonoBehaviour
         storyText.text = "»After all, there is only ever a Garden of Eden for as long as there is a gardener who tends to it.«<br><br>– Patricia de Vries (Against Gardening, 2021) –";
         storyText.DOFade(1f, 2f);
         yield return new WaitForSeconds(1.5f);
-        PlayStoryAudio(epilogueAudio, new Vector3(100,100,100), true);  
+        //PlayStoryAudio(epilogueAudio, new Vector3(100,100,100), true);  
         yield return new WaitForSeconds(epilogueAudio.length + 1f);
         
         storyText.DOFade(0f, 2f);
@@ -1162,6 +1164,7 @@ public class StoryManager : MonoBehaviour
     // Start Game Screen
     private  IEnumerator StartScreen()
     {
+        Debug.Log("Run StartScreen");
         gardenStoryCount = 5;
         taubenschlagStoryCount = 7;
         pidgeonStoryCount = 6;
@@ -1196,6 +1199,10 @@ public class StoryManager : MonoBehaviour
     
     private void StartGame()
     {
+        Debug.Log ("Try StartGame");
+        
+        
+        
         if (!readyToStartGame)
             return;
         
