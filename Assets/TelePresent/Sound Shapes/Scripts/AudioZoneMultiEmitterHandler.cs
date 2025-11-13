@@ -1,209 +1,235 @@
 /*******************************************************
 Product - Sound Shapes
-  Publisher - TelePresent Games
-              http://TelePresentGames.dk
-  Author    - Martin Hansen
-  Created   - 2025
-  (c) 2025 Martin Hansen. All rights reserved.
-/*******************************************************/
+Publisher - TelePresent Games
+			http://TelePresentGames.dk
+Author    - Martin Hansen
+Created   - 2025
+(c) 2025 Martin Hansen. All rights reserved.
+*******************************************************/
 
 using UnityEngine;
 using System.Collections.Generic;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace TelePresent.SoundShapes
 {
-    public class AudioZoneMultiEmitterHandler
-    {
-        private AudioZone zone;
-        // Dictionary mapping multi-emitter point indices to their active AudioSource.
-        private Dictionary<int, AudioSource> activeSources = new Dictionary<int, AudioSource>();
+	public class AudioZoneMultiEmitterHandler
+	{
+		private readonly AudioZone _zone;
 
-        public AudioZoneMultiEmitterHandler(AudioZone parentZone)
-        {
-            zone = parentZone;
-        }
+		// Track spawned emitter? clone instances by their index
+		private readonly Dictionary<int, GameObject> _activeInstances = new();
 
-        /// <summary>
-        /// Checks the player’s distance for each emitter point and spawns or removes AudioSources as needed.
-        /// </summary>
-        public void UpdateMultiEmitterLogic()
-        {
+		public AudioZoneMultiEmitterHandler(AudioZone parentZone) => _zone = parentZone;
 
-            if (zone == null)
-                return;
 
-            Vector3 targetPosition = Vector3.zero;
+		public void UpdateMultiEmitterLogic()
+		{
+			if (!_zone)
+				return;
+
+			Vector3 listenerPos;
 
 #if UNITY_EDITOR
-            if (zone.editorPreview && !Application.isPlaying)
-            {
-                if (UnityEditor.SceneView.lastActiveSceneView != null &&
-                    UnityEditor.SceneView.lastActiveSceneView.camera != null)
-                {
-                    targetPosition = UnityEditor.SceneView.lastActiveSceneView.camera.transform.position;
-                }
-                else
-                {
-                    return; // No valid camera position.
-                }
-            }
-            else if (!Application.isPlaying && !zone.editorPreview)
-            {
-                // Not in preview mode in the editor; skip updating.
-                return;
-            }
-            else
-            {
-
-                targetPosition = zone.currentTargetPosition;
-            }
+			if (_zone.editorPreview && !Application.isPlaying)
+			{
+				var sv = SceneView.lastActiveSceneView;
+				if (!sv?.camera) return;
+				listenerPos = sv.camera.transform.position;
+			}
+			else if (!Application.isPlaying && !_zone.editorPreview)
+			{
+				return;
+			}
+			else
+			{
+				listenerPos = _zone.currentTargetPosition;
+			}
 #else
-                targetPosition = zone.currentTargetPosition;
+            listenerPos = _zone.currentTargetPosition;
 #endif
 
+			float baseMax = _zone.audioSource ? _zone.audioSource.maxDistance : 10f;
+			float triggerDistance = _zone.triggerDistanceOverride > 0f
+				? _zone.triggerDistanceOverride
+				: baseMax;
+			float triggerDistanceSq = triggerDistance * triggerDistance;
 
-            // Determine trigger distance (fallback to 10 if no main AudioSource is set).
-            float baseMax = (zone.audioSource != null) ? zone.audioSource.maxDistance : 10f;
-            float triggerDistance = (zone.triggerDistanceOverride > 0f) ? zone.triggerDistanceOverride : baseMax;
-            float triggerDistanceSqr = triggerDistance * triggerDistance;
+			GameObject sourceObject = _zone.audioSource
+				? _zone.audioSource.gameObject
+				: _zone.positionTarget;
 
-            Transform zoneTransform = zone.transform;
+			if (!sourceObject)
+				return;
 
-            // Loop through all multi-emitter points.
-            for (int i = 0; i < zone.multiEmitterPoints.Count; i++)
-            {
-                Vector3 localPt = zone.multiEmitterPoints[i];
-                Vector3 worldPt = zoneTransform.TransformPoint(localPt);
-                float distSqr = (targetPosition - worldPt).sqrMagnitude;
-                bool inRange = distSqr <= triggerDistanceSqr;
 
-                if (inRange)
-                {
-                    // Spawn an AudioSource if one isn't active.
-                    if (!activeSources.ContainsKey(i))
-                    {
-                        AudioSource newSrc = CreateAudioSourceAt(worldPt, i);
-                        activeSources[i] = newSrc;
-                    }
+			for (int i = 0; i < _zone.multiEmitterPoints.Count; i++)
+			{
+				Vector3 worldPt = _zone.transform.TransformPoint(_zone.multiEmitterPoints[i]);
 
-                    // Update occlusion if enabled.
-                    if (zone.enableOcclusion && activeSources.ContainsKey(i))
-                    {
-                        AudioZoneOcclusion.UpdateOcclusion(targetPosition, worldPt, activeSources[i], zone);
-                    }
-                }
-                else
-                {
-                    // If the player leaves the range, destroy the AudioSource.
-                    if (activeSources.ContainsKey(i))
-                    {
-                        DestroyAudioSource(activeSources[i]);
-                        activeSources.Remove(i);
-                    }
-                }
-            }
-        }
+				bool inRange = (listenerPos - worldPt).sqrMagnitude <= triggerDistanceSq;
 
-        /// <summary>
-        /// Creates a new AudioSource GameObject at the specified position and copies settings from the zone's main AudioSource.
-        /// </summary>
-        private AudioSource CreateAudioSourceAt(Vector3 position, int emitterIndex)
-        {
-            GameObject go = new GameObject("MultiEmitterSource_" + emitterIndex)
-            {
-                transform =
-            {
-                position = position,
-                parent = zone.transform
-            }
-            };
+				if (inRange)
+				{
+					if (!_activeInstances.ContainsKey(i))
+					{
+						GameObject inst = CreateInstanceAt(worldPt, i, sourceObject);
+						if (inst)
+							_activeInstances[i] = inst;
+					}
 
-            AudioSource newSrc = go.AddComponent<AudioSource>();
-            newSrc.volume = zone.audioSource.volume;
+					if (_zone.enableOcclusion && _activeInstances.TryGetValue(i, out var go))
+					{
+						var src = go.GetComponent<AudioSource>();
+						if (src)
+							AudioZoneOcclusion.UpdateOcclusion(
+								listenerPos,
+								go.transform.position,
+								src,
+								_zone);
+					}
+				}
+				else
+				{
+					if (_activeInstances.TryGetValue(i, out var inst))
+					{
+						DestroyInstance(inst);
+						_activeInstances.Remove(i);
+					}
+				}
+			}
+		}
 
-            AudioLowPassFilter lpf = go.AddComponent<AudioLowPassFilter>();
-            if (zone.enableOcclusion)
-            {
-                lpf.cutoffFrequency = zone.defaultLowPassCutoff;
-            }
-            else if (zone.audioSource.GetComponent<AudioLowPassFilter>() != null)
-            {
-                lpf.cutoffFrequency = zone.audioSource.GetComponent<AudioLowPassFilter>().cutoffFrequency;
-            }
+		//-------------------------------------------------------------------------
+        #region Instance Creation / Destruction
 
-            if (zone.audioSource != null)
-            {
-                // Copy properties from the main AudioSource.
-                newSrc.clip = zone.audioSource.clip;
-                newSrc.outputAudioMixerGroup = zone.audioSource.outputAudioMixerGroup;
-                newSrc.mute = zone.audioSource.mute;
-                newSrc.bypassEffects = zone.audioSource.bypassEffects;
-                newSrc.bypassListenerEffects = zone.audioSource.bypassListenerEffects;
-                newSrc.bypassReverbZones = zone.audioSource.bypassReverbZones;
-                newSrc.playOnAwake = false;
-                newSrc.loop = zone.audioSource.loop;
-                newSrc.priority = zone.audioSource.priority;
-                newSrc.volume = zone.audioSource.volume;
-                newSrc.pitch = zone.audioSource.pitch;
-                newSrc.panStereo = zone.audioSource.panStereo;
-                newSrc.spatialBlend = zone.audioSource.spatialBlend;
-                newSrc.reverbZoneMix = zone.audioSource.reverbZoneMix;
-                newSrc.dopplerLevel = zone.audioSource.dopplerLevel;
-                newSrc.spread = zone.audioSource.spread;
-                newSrc.rolloffMode = zone.audioSource.rolloffMode;
-                newSrc.minDistance = zone.audioSource.minDistance;
-                newSrc.maxDistance = zone.audioSource.maxDistance;
-            }
-            else
-            {
-                // Fallback default settings.
-                newSrc.spatialBlend = 1.0f;
-                newSrc.rolloffMode = AudioRolloffMode.Linear;
-                newSrc.minDistance = 1.0f;
-                newSrc.maxDistance = 10.0f;
-                newSrc.loop = true;
-            }
+		//-------------------------------------------------------------------------
 
-            if (newSrc.clip != null)
-            {
-                newSrc.Play();
-            }
-            else
-            {
-                Debug.LogWarning("AudioZone: No audio clip assigned to multi-emitter source at point " + emitterIndex);
-            }
+		private GameObject CreateInstanceAt(Vector3 position,
+			int emitterIndex,
+			GameObject sourceObject)
+		{
 
-            return newSrc;
-        }
+			if (_zone.requireAudioSourceComponent)
+			{
+				if (!_zone.audioSource)
+				{
+					Debug.LogWarning("AudioZoneMultiEmitterHandler: " +
+									"requireAudioSourceComponent is TRUE, " +
+									"but the zone has no AudioSource to copy.");
+					return null;
+				}
 
-        /// <summary>
-        /// Destroys the specified AudioSource’s GameObject.
-        /// </summary>
-        private void DestroyAudioSource(AudioSource source)
-        {
-            if (source != null && source.gameObject != null)
-            {
+				GameObject go = new(_zone.audioSource.gameObject.name + "_Emitter_" + emitterIndex);
+				go.transform.SetParent(_zone.transform, false);
+				go.transform.position = position;
+				go.transform.rotation = _zone.audioSource.transform.rotation;
+
+				AudioSource dst = go.AddComponent<AudioSource>();
+				CopyAudioSourceProperties(_zone.audioSource, dst);
+				dst.Play();
+
+				if (_zone.enableOcclusion)
+				{
+					var lpf = go.AddComponent<AudioLowPassFilter>();
+					lpf.cutoffFrequency = _zone.defaultLowPassCutoff;
+				}
+
+				return go;
+			}
+
+
+			if (sourceObject == _zone.gameObject)
+			{
+				Debug.LogWarning("AudioZoneMultiEmitterHandler: cannot clone AudioSource " +
+								"because it resides on the zone object itself.");
+				return null;
+			}
+
+			GameObject clone = Object.Instantiate(
+				sourceObject,
+				position,
+				sourceObject.transform.rotation,
+				_zone.transform);
+			clone.name = sourceObject.name + "_Emitter_" + emitterIndex;
+
+			var zoneComp = clone.GetComponent<AudioZone>();
+			if (zoneComp)
+			{
 #if UNITY_EDITOR
-                if (Application.isPlaying)
-                    GameObject.Destroy(source.gameObject);
-                else
-                    GameObject.DestroyImmediate(source.gameObject);
+				if (Application.isPlaying)
+					Object.Destroy(zoneComp);
+				else
+					Object.DestroyImmediate(zoneComp);
 #else
-            GameObject.Destroy(source.gameObject);
+                Object.Destroy(zoneComp);
 #endif
-            }
-        }
+			}
 
-        /// <summary>
-        /// Destroys all active AudioSources managed by this handler.
-        /// </summary>
-        public void CleanupAll()
-        {
-            // Iterate over a copy to avoid modification during iteration.
-            foreach (var kvp in new Dictionary<int, AudioSource>(activeSources))
-            {
-                DestroyAudioSource(kvp.Value);
-            }
-            activeSources.Clear();
-        }
-    }
+			var src = clone.GetComponent<AudioSource>();
+			if (src)
+			{
+				src.enabled = true;
+				src.Play();
+			}
+
+			return clone;
+		}
+
+
+		private void DestroyInstance(GameObject instance)
+		{
+			if (!instance) return;
+
+#if UNITY_EDITOR
+			if (Application.isPlaying)
+				Object.Destroy(instance);
+			else
+				Object.DestroyImmediate(instance);
+#else
+            Object.Destroy(instance);
+#endif
+		}
+
+		public void CleanupAll()
+		{
+			foreach (var kvp in new Dictionary<int, GameObject>(_activeInstances))
+				DestroyInstance(kvp.Value);
+
+			_activeInstances.Clear();
+		}
+
+
+        #endregion
+        #region AudioSource copy helper
+
+
+		private static void CopyAudioSourceProperties(AudioSource src, AudioSource dst)
+		{
+			dst.clip = src.clip;
+			dst.outputAudioMixerGroup = src.outputAudioMixerGroup;
+			dst.mute = src.mute;
+			dst.bypassEffects = src.bypassEffects;
+			dst.bypassListenerEffects = src.bypassListenerEffects;
+			dst.bypassReverbZones = src.bypassReverbZones;
+			dst.playOnAwake = src.playOnAwake;
+			dst.loop = src.loop;
+			dst.priority = src.priority;
+			dst.volume = src.volume;
+			dst.pitch = src.pitch;
+			dst.panStereo = src.panStereo;
+			dst.spatialBlend = src.spatialBlend;
+			dst.reverbZoneMix = src.reverbZoneMix;
+			dst.dopplerLevel = 0;
+			dst.spread = src.spread;
+			dst.rolloffMode = src.rolloffMode;
+			dst.minDistance = src.minDistance;
+			dst.maxDistance = src.maxDistance;
+		}
+		
+        #endregion
+	}
 }

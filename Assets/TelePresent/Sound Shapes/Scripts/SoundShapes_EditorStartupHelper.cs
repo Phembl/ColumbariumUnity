@@ -25,10 +25,10 @@ namespace TelePresent.SoundShapes
         {
             get
             {
-                if (singletonInstance == null)
+                if (!singletonInstance)
                 {
                     singletonInstance = Resources.Load<SoundShapes_EditorStartupHelper>("SoundShapes_EditorStartupHelper");
-                    if (singletonInstance == null)
+                    if (!singletonInstance)
                     {
                         singletonInstance = CreateInstance<SoundShapes_EditorStartupHelper>();
                     }
@@ -76,7 +76,7 @@ namespace TelePresent.SoundShapes
                 string assetPath = "Assets/TelePresent/Sound Shapes/Scripts/Resources/SoundShapes_EditorStartupHelper.asset";
 
                 singletonInstance = Resources.Load<SoundShapes_EditorStartupHelper>("SoundShapes_EditorStartupHelper");
-                if (singletonInstance == null)
+                if (!singletonInstance)
                 {
                     Debug.Log("Creating new SoundShapes_EditorStartupHelper asset");
                     AssetDatabase.CreateAsset(temporaryCopy, assetPath);

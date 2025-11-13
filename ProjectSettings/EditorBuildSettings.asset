@@ -6,8 +6,17 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/6.Scenes/COLUMBARIUM.unity
+    path: Assets/6.Scenes/Main.unity
+    guid: 4c8697b9de8e70948acbc1de286637b4
+  - enabled: 1
+    path: Assets/6.Scenes/Garten.unity
     guid: 32c8ea70c7911f948b75c5a253dece86
+  - enabled: 1
+    path: Assets/6.Scenes/Taubenschlag.unity
+    guid: ef99cf0d3dd722b45a9f457161a3987a
+  - enabled: 1
+    path: Assets/6.Scenes/Cinematic.unity
+    guid: 6e5a086074616fc40beed14ce36e898c
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

@@ -18,69 +18,72 @@ namespace TelePresent.SoundShapes
     {
         #region Fields and Properties
 
-        private bool isDrawingShape = false;
-        private bool isDrawingMultiEmitter = false;
-        private bool showOcclusionSettings = false;
+        private bool _isDrawingShape;
+        private bool _isDrawingMultiEmitter;
+        private bool _showOcclusionSettings;
 
-        private AudioZone audioZone;
-        private Plane drawingPlane;
+        private AudioZone _audioZone;
+        private Plane _drawingPlane;
 
         // Custom GUI styles for scene overlay.
-        private GUIStyle sceneBoxStyle;
-        private GUIStyle sceneTitleStyle;
-        private GUIStyle sceneLabelStyle;
+        private GUIStyle _sceneBoxStyle;
+        private GUIStyle _sceneTitleStyle;
+        private GUIStyle _sceneLabelStyle;
 
         // Custom foldout style.
-        private GUIStyle foldoutBoldStyle;
+        private GUIStyle _foldoutBoldStyle;
 
         // Serialized properties.
-        private SerializedProperty modeProp;
-        private SerializedProperty closedShapeProp;
-        private SerializedProperty pointsProp;
-        private SerializedProperty meshFiltersProp;
-        private SerializedProperty meshAudioOffsetProp;
-        private SerializedProperty multiEmitterPointsProp;
-        private SerializedProperty audioSourceProp;
-        private SerializedProperty enableDualAudioProp;
-        private SerializedProperty enableOcclusionProp;
-        private SerializedProperty occlusionLayerProp;
-        private SerializedProperty occlusionVolumeMultiplierProp;
-        private SerializedProperty occlusionLowPassCutoffProp;
-        private SerializedProperty defaultLowPassCutoffProp;
-        private SerializedProperty occlusionResolutionProp;
-        private SerializedProperty occlusionSampleRadiusProp;
-        private SerializedProperty flipTriggerDistanceProp;
-        private SerializedProperty triggerDistanceOverrideProp;
+        private SerializedProperty _modeProp;
+        private SerializedProperty _closedShapeProp;
+        private SerializedProperty _pointsProp;
+        private SerializedProperty _meshFiltersProp;
+        private SerializedProperty _meshAudioOffsetProp;
+        private SerializedProperty _multiEmitterPointsProp;
+        private SerializedProperty _soundShapeTrackerProp;
+        private SerializedProperty _requireAudioSourceComponentProp;
+        private SerializedProperty _enableDualAudioProp;
+        private SerializedProperty _enableOcclusionProp;
+        private SerializedProperty _occlusionLayerProp;
+        private SerializedProperty _occlusionVolumeMultiplierProp;
+        private SerializedProperty _occlusionLowPassCutoffProp;
+        private SerializedProperty _defaultLowPassCutoffProp;
+        private SerializedProperty _occlusionResolutionProp;
+        private SerializedProperty _occlusionSampleRadiusProp;
+        private SerializedProperty _occlusion2DModeProp;
+        private SerializedProperty _occlusion2DSpreadDegreesProp;
+        private SerializedProperty _flipTriggerDistanceProp;
+        private SerializedProperty _triggerDistanceOverrideProp;
 
         // New tracking mode properties.
-        private SerializedProperty trackingModeProp;
-        private SerializedProperty trackingTagProp;
-        private SerializedProperty trackingObjectProp;
+        private SerializedProperty _trackingModeProp;
+        private SerializedProperty _trackingTagProp;
+        private SerializedProperty _trackingObjectProp;
 
         // Icon.
-        private Texture2D penIcon;
-        private Texture2D exitPenIcon;
-        private Texture2D previewOn;
-        private Texture2D previewOff;
+        private Texture2D _penIcon;
+        private Texture2D _exitPenIcon;
+        private Texture2D _previewOn;
+        private Texture2D _previewOff;
         private const string IconsFolderPath = "Assets/TelePresent/Sound Shapes/Editor/";
-        private const string penIconPath = IconsFolderPath + "penicon.png";
-        private const string exitPenIconPath = IconsFolderPath + "exitpenicon.png";
-        private const string previewOnPath = IconsFolderPath + "previewon.png";
-        private const string previewOffPath = IconsFolderPath + "previewoff.png";
+        private const string PenIconPath = IconsFolderPath + "penicon.png";
+        private const string ExitPenIconPath = IconsFolderPath + "exitpenicon.png";
+        private const string PreviewOnPath = IconsFolderPath + "previewon.png";
+        private const string PreviewOffPath = IconsFolderPath + "previewoff.png";
 
         // EditorPrefs keys for persistent foldouts.
-        private string TargetFoldoutKey { get { return "AudioZoneEditor_ShowTargetSettings_" + audioZone.GetInstanceID(); } }
-        private string TriggerFoldoutKey { get { return "AudioZoneEditor_ShowTriggerSettings_" + audioZone.GetInstanceID(); } }
+        private string TargetFoldoutKey => "AudioZoneEditor_ShowTargetSettings_" + _audioZone.GetInstanceID();
+        private string TriggerFoldoutKey => "AudioZoneEditor_ShowTriggerSettings_" + _audioZone.GetInstanceID();
 
         private bool ShowTargetSettingsFoldout
         {
-            get { return EditorPrefs.GetBool(TargetFoldoutKey, true); }
-            set { EditorPrefs.SetBool(TargetFoldoutKey, value); }
+            get => EditorPrefs.GetBool(TargetFoldoutKey, true);
+            set => EditorPrefs.SetBool(TargetFoldoutKey, value);
         }
         private bool ShowTriggerSettingsFoldout
         {
-            get { return EditorPrefs.GetBool(TriggerFoldoutKey, true); }
-            set { EditorPrefs.SetBool(TriggerFoldoutKey, value); }
+            get => EditorPrefs.GetBool(TriggerFoldoutKey, true);
+            set => EditorPrefs.SetBool(TriggerFoldoutKey, value);
         }
 
         #endregion
@@ -89,37 +92,40 @@ namespace TelePresent.SoundShapes
 
         private void OnEnable()
         {
-            penIcon = LoadIcon(penIconPath);
-            exitPenIcon = LoadIcon(exitPenIconPath);
-            previewOn = LoadIcon(previewOnPath);
-            previewOff = LoadIcon(previewOffPath);
+            _penIcon = LoadIcon(PenIconPath);
+            _exitPenIcon = LoadIcon(ExitPenIconPath);
+            _previewOn = LoadIcon(PreviewOnPath);
+            _previewOff = LoadIcon(PreviewOffPath);
 
-            audioZone = (AudioZone)target;
-            drawingPlane = new Plane(Vector3.up, audioZone.transform.position);
+            _audioZone = (AudioZone)target;
+            _drawingPlane = new Plane(Vector3.up, _audioZone.transform.position);
             SceneView.duringSceneGui += OnSceneGUIDelegate;
 
             // Cache serialized properties.
-            modeProp = serializedObject.FindProperty("mode");
-            closedShapeProp = serializedObject.FindProperty("closedShape");
-            pointsProp = serializedObject.FindProperty("points");
-            meshFiltersProp = serializedObject.FindProperty("meshFilters");
-            meshAudioOffsetProp = serializedObject.FindProperty("meshAudioOffset");
-            multiEmitterPointsProp = serializedObject.FindProperty("multiEmitterPoints");
-            audioSourceProp = serializedObject.FindProperty("audioSource");
-            enableDualAudioProp = serializedObject.FindProperty("enableDualAudio");
-            enableOcclusionProp = serializedObject.FindProperty("enableOcclusion");
-            occlusionLayerProp = serializedObject.FindProperty("occlusionLayer");
-            occlusionVolumeMultiplierProp = serializedObject.FindProperty("occlusionVolumeMultiplier");
-            occlusionLowPassCutoffProp = serializedObject.FindProperty("occlusionLowPassCutoff");
-            defaultLowPassCutoffProp = serializedObject.FindProperty("defaultLowPassCutoff");
-            occlusionResolutionProp = serializedObject.FindProperty("occlusionResolution");
-            occlusionSampleRadiusProp = serializedObject.FindProperty("occlusionSampleRadius");
-            flipTriggerDistanceProp = serializedObject.FindProperty("flipTriggerDistance");
-            triggerDistanceOverrideProp = serializedObject.FindProperty("triggerDistanceOverride");
+            _modeProp = serializedObject.FindProperty("mode");
+            _closedShapeProp = serializedObject.FindProperty("closedShape");
+            _pointsProp = serializedObject.FindProperty("points");
+            _meshFiltersProp = serializedObject.FindProperty("meshFilters");
+            _meshAudioOffsetProp = serializedObject.FindProperty("meshAudioOffset");
+            _multiEmitterPointsProp = serializedObject.FindProperty("multiEmitterPoints");
+            _soundShapeTrackerProp = serializedObject.FindProperty("soundShapeTracker");
+            _requireAudioSourceComponentProp = serializedObject.FindProperty("requireAudioSourceComponent");
+            _enableDualAudioProp = serializedObject.FindProperty("enableDualAudio");
+            _enableOcclusionProp = serializedObject.FindProperty("enableOcclusion");
+            _occlusionLayerProp = serializedObject.FindProperty("occlusionLayer");
+            _occlusionVolumeMultiplierProp = serializedObject.FindProperty("occlusionVolumeMultiplier");
+            _occlusionLowPassCutoffProp = serializedObject.FindProperty("occlusionLowPassCutoff");
+            _defaultLowPassCutoffProp = serializedObject.FindProperty("defaultLowPassCutoff");
+            _occlusionResolutionProp = serializedObject.FindProperty("occlusionResolution");
+            _occlusionSampleRadiusProp = serializedObject.FindProperty("occlusionSampleRadius");
+            _occlusion2DModeProp          = serializedObject.FindProperty("occlusion2DMode");
+            _occlusion2DSpreadDegreesProp = serializedObject.FindProperty("occlusion2DSpreadDegrees");
+            _flipTriggerDistanceProp = serializedObject.FindProperty("flipTriggerDistance");
+            _triggerDistanceOverrideProp = serializedObject.FindProperty("triggerDistanceOverride");
 
-            trackingModeProp = serializedObject.FindProperty("trackingMode");
-            trackingTagProp = serializedObject.FindProperty("trackingTag");
-            trackingObjectProp = serializedObject.FindProperty("trackingObject");
+            _trackingModeProp = serializedObject.FindProperty("trackingMode");
+            _trackingTagProp = serializedObject.FindProperty("trackingTag");
+            _trackingObjectProp = serializedObject.FindProperty("trackingObject");
         }
 
         private void OnDisable()
@@ -144,18 +150,18 @@ namespace TelePresent.SoundShapes
 
             // Mode selection toolbar.
             EditorGUILayout.LabelField("Area Mode", EditorStyles.boldLabel);
-            int oldMode = modeProp.enumValueIndex;
-            int newMode = GUILayout.Toolbar(oldMode, new string[] { "Shape", "Mesh", "Multi" });
+            int oldMode = _modeProp.enumValueIndex;
+            int newMode = GUILayout.Toolbar(oldMode, new[] { "Shape", "Mesh", "Multi" });
             if (newMode != oldMode)
             {
-                modeProp.enumValueIndex = newMode;
+                _modeProp.enumValueIndex = newMode;
                 if (newMode != (int)AudioZone.ZoneMode.MultiEmitter)
                 {
-                    audioZone.multiEmitterHandler.CleanupAll();
-                    if (audioZone.disabledAudioSourceForMultiEmitter)
+                    _audioZone.MultiEmitterHandler.CleanupAll();
+                    if (_audioZone.disabledAudioSourceForMultiEmitter)
                     {
-                        audioZone.audioSource.enabled = true;
-                        audioZone.disabledAudioSourceForMultiEmitter = false;
+                        _audioZone.audioSource.enabled = true;
+                        _audioZone.disabledAudioSourceForMultiEmitter = false;
                     }
                 }
             }
@@ -163,7 +169,7 @@ namespace TelePresent.SoundShapes
 
             // Mode-specific settings.
             GUILayout.BeginVertical("box");
-            int currentMode = modeProp.enumValueIndex;
+            int currentMode = _modeProp.enumValueIndex;
             if (currentMode == (int)AudioZone.ZoneMode.Shape)
             {
                 DrawShapeSettings();
@@ -198,25 +204,25 @@ namespace TelePresent.SoundShapes
             Event e = Event.current;
             if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
             {
-                if (isDrawingShape)
+                if (_isDrawingShape)
                 {
-                    isDrawingShape = false;
+                    _isDrawingShape = false;
                     e.Use();
                     Repaint();
                 }
-                if (isDrawingMultiEmitter)
+                if (_isDrawingMultiEmitter)
                 {
-                    isDrawingMultiEmitter = false;
+                    _isDrawingMultiEmitter = false;
                     e.Use();
                     Repaint();
                 }
             }
 
             InitSceneViewStyles();
-            AudioZoneDrawingTools.DrawSceneOverlayUI(audioZone, isDrawingShape, isDrawingMultiEmitter, drawingPlane, sceneBoxStyle, sceneTitleStyle, sceneLabelStyle);
-            if (audioZone.closedShape && audioZone.points.Count > 2)
+            AudioZoneDrawingTools.DrawSceneOverlayUI(_audioZone, _isDrawingShape, _isDrawingMultiEmitter, _drawingPlane, _sceneBoxStyle, _sceneTitleStyle, _sceneLabelStyle);
+            if (_audioZone.closedShape && _audioZone.points.Count > 2)
             {
-                AudioZoneDrawingTools.DrawFilledShape(audioZone);
+                AudioZoneDrawingTools.DrawFilledShape(_audioZone);
             }
             SceneView.RepaintAll();
         }
@@ -229,13 +235,13 @@ namespace TelePresent.SoundShapes
         {
             EditorGUILayout.LabelField("Shape Settings", EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
-            EditorGUILayout.PropertyField(pointsProp, true);
+            EditorGUILayout.PropertyField(_pointsProp, true);
             EditorGUI.indentLevel--;
-            string loopLabel = closedShapeProp.boolValue ? "Closed Shape: On" : "Closed Shape: Off";
-            bool newLoop = GUILayout.Toggle(closedShapeProp.boolValue,
+            string loopLabel = _closedShapeProp.boolValue ? "Closed Shape: On" : "Closed Shape: Off";
+            bool newLoop = GUILayout.Toggle(_closedShapeProp.boolValue,
                 new GUIContent(loopLabel, "Connects the last point to the first to form a closed shape."), "Button");
-            if (newLoop != closedShapeProp.boolValue)
-                closedShapeProp.boolValue = newLoop;
+            if (newLoop != _closedShapeProp.boolValue)
+                _closedShapeProp.boolValue = newLoop;
 
             // Button with custom vertical padding.
             GUIStyle paddedButtonStyle = new GUIStyle(GUI.skin.button)
@@ -243,20 +249,20 @@ namespace TelePresent.SoundShapes
                 padding = new RectOffset(4, 4, 10, 10)
             };
 
-            if (!isDrawingShape)
+            if (!_isDrawingShape)
             {
-                if (GUILayout.Button(GetIconContent("  Enter Draw Mode", penIcon), paddedButtonStyle, GUILayout.Height(40), GUILayout.ExpandWidth(true)))
+                if (GUILayout.Button(GetIconContent("  Enter Draw Mode", _penIcon), paddedButtonStyle, GUILayout.Height(40), GUILayout.ExpandWidth(true)))
                 {
-                    isDrawingShape = true;
-                    AudioZoneDrawingTools.RebuildBVH();
+                    _isDrawingShape = true;
+                    AudioZoneDrawingTools.RebuildBvh();
                 }
             }
             else
             {
                 Color originalBgColor = GUI.backgroundColor;
                 GUI.backgroundColor = new Color(1.1f, .9f, .9f);
-                if (GUILayout.Button(GetIconContent("  Exit Draw Mode", exitPenIcon), paddedButtonStyle, GUILayout.Height(40), GUILayout.ExpandWidth(true)))
-                    isDrawingShape = false;
+                if (GUILayout.Button(GetIconContent("  Exit Draw Mode", _exitPenIcon), paddedButtonStyle, GUILayout.Height(40), GUILayout.ExpandWidth(true)))
+                    _isDrawingShape = false;
                 GUI.backgroundColor = originalBgColor;
                 EditorGUILayout.HelpBox("Click in the Scene to add points.", MessageType.Info);
             }
@@ -266,9 +272,9 @@ namespace TelePresent.SoundShapes
         {
             EditorGUILayout.LabelField("Mesh Mode Settings", EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
-            EditorGUILayout.PropertyField(meshFiltersProp, new GUIContent("Mesh Filters"), true);
+            EditorGUILayout.PropertyField(_meshFiltersProp, new GUIContent("Mesh Filters"), true);
             EditorGUI.indentLevel--;
-            EditorGUILayout.PropertyField(meshAudioOffsetProp, new GUIContent("Audio Offset"));
+            EditorGUILayout.PropertyField(_meshAudioOffsetProp, new GUIContent("Audio Offset"));
         }
 
         private void DrawMultiEmitterSettings()
@@ -281,143 +287,157 @@ namespace TelePresent.SoundShapes
 
             EditorGUILayout.LabelField("Multi-Emitter Settings", EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
-            EditorGUILayout.PropertyField(multiEmitterPointsProp, true);
+            EditorGUILayout.PropertyField(_multiEmitterPointsProp, true);
             EditorGUI.indentLevel--;
-            if (!isDrawingMultiEmitter)
+            if (!_isDrawingMultiEmitter)
             {
-                if (GUILayout.Button(GetIconContent("  Enter Draw Mode", penIcon), paddedButtonStyle, GUILayout.Height(40), GUILayout.ExpandWidth(true)))
+                if (GUILayout.Button(GetIconContent("  Enter Draw Mode", _penIcon), paddedButtonStyle, GUILayout.Height(40), GUILayout.ExpandWidth(true)))
                 {
-                    isDrawingMultiEmitter = true;
-                    AudioZoneDrawingTools.RebuildBVH();
+                    _isDrawingMultiEmitter = true;
+                    AudioZoneDrawingTools.RebuildBvh();
                 }
             }
             else
             {
                 Color originalBgColor = GUI.backgroundColor;
                 GUI.backgroundColor = new Color(1.1f, .9f, .9f);
-                if (GUILayout.Button(GetIconContent("  Exit Draw Mode", exitPenIcon), paddedButtonStyle, GUILayout.Height(40), GUILayout.ExpandWidth(true)))
-                    isDrawingMultiEmitter = false;
+                if (GUILayout.Button(GetIconContent("  Exit Draw Mode", _exitPenIcon), paddedButtonStyle, GUILayout.Height(40), GUILayout.ExpandWidth(true)))
+                    _isDrawingMultiEmitter = false;
                 GUI.backgroundColor = originalBgColor;
                 EditorGUILayout.HelpBox("Click in the Scene to place emitter points.", MessageType.Info);
             }
         }
+private void DrawAudioSettings()
+{
+    EditorGUILayout.BeginVertical("box");
+    string trackerMode = _audioZone.requireAudioSourceComponent ? "Audio Source" : "Tracker Object";
+    EditorGUILayout.LabelField(trackerMode, EditorStyles.boldLabel);
 
-        private void DrawAudioSettings()
+    EditorGUILayout.BeginHorizontal();
+    if (_requireAudioSourceComponentProp.boolValue)
+    {
+        AudioSource cur = _audioZone.soundShapeTracker
+            ? _audioZone.soundShapeTracker.GetComponent<AudioSource>() : null;
+        EditorGUI.BeginChangeCheck();
+        AudioSource newSrc = (AudioSource)EditorGUILayout.ObjectField(
+            new GUIContent(trackerMode), cur, typeof(AudioSource), true);
+        if (EditorGUI.EndChangeCheck())
+            _soundShapeTrackerProp.objectReferenceValue = newSrc ? newSrc.gameObject : null;
+    }
+    else
+    {
+        EditorGUILayout.PropertyField(_soundShapeTrackerProp, new GUIContent(trackerMode));
+    }
+
+    GUIContent focusIcon = EditorGUIUtility.IconContent("TransformTool");
+    if (!_audioZone.audioSource) GUI.enabled = false;
+    if (GUILayout.Button(focusIcon, GUILayout.Width(30), GUILayout.Height(20)))
+    {
+        if (_audioZone.audioSource)
         {
-            EditorGUILayout.BeginVertical("box");
-            EditorGUILayout.LabelField("Audio Settings", EditorStyles.boldLabel);
-
-            // Draw Audio Source property field with a focus button on the same line.
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PropertyField(audioSourceProp, new GUIContent("Audio Source"));
-
-            // Get the default Unity icon for focus.
-            GUIContent focusIcon = EditorGUIUtility.IconContent("TransformTool");
-
-            // Disable the button if no AudioSource is assigned.
-            if (audioZone.audioSource == null)
-                GUI.enabled = false;
-
-            if (GUILayout.Button(focusIcon, GUILayout.Width(30), GUILayout.Height(20)))
-            {
-                if (audioZone.audioSource != null)
-                {
-                    // Select and ping the AudioSource's GameObject.
-                    Selection.activeGameObject = audioZone.audioSource.gameObject;
-                    EditorGUIUtility.PingObject(audioZone.audioSource.gameObject);
-                }
-            }
-
-            // Re-enable GUI if it was disabled.
-            GUI.enabled = true;
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.BeginHorizontal();
-
-            // Dual Audio Toggle
-            bool newDual = GUILayout.Toggle(enableDualAudioProp.boolValue, "Allow Dual Audio", "Button");
-            if (newDual != enableDualAudioProp.boolValue)
-            {
-                enableDualAudioProp.boolValue = newDual;
-                if (!newDual)
-                    audioZone.dualAudioHandler.StopAndCleanup();
-            }
-
-            // Occlusion Toggle with change detection.
-            bool newOcc = GUILayout.Toggle(enableOcclusionProp.boolValue, "Enable Occlusion", "Button");
-            if (newOcc != enableOcclusionProp.boolValue)
-            {
-                enableOcclusionProp.boolValue = newOcc;
-                if (newOcc)
-                {
-                    // When enabling occlusion, store the current default cutoff.
-                    StoreDefaultOcclusion();
-                }
-                else
-                {
-                    // When disabling occlusion, reset settings.
-                    DisableOcclusion();
-                }
-            }
-            EditorGUILayout.EndHorizontal();
-
-            if (enableOcclusionProp.boolValue)
-            {
-                EditorGUI.indentLevel++;
-                showOcclusionSettings = EditorGUILayout.Foldout(showOcclusionSettings, "Occlusion Settings", true);
-                if (showOcclusionSettings)
-                {
-                    EditorGUILayout.PropertyField(occlusionLayerProp, new GUIContent("Occlusion Layer"));
-                    EditorGUILayout.Slider(occlusionVolumeMultiplierProp, 0f, 1f, "Occlusion Volume Multiplier");
-                    EditorGUILayout.Slider(occlusionLowPassCutoffProp, 20f, 22000f, "Occlusion LPF Cutoff");
-
-                    // Draw the default LPF cutoff slider.
-                    EditorGUILayout.Slider(defaultLowPassCutoffProp, 20f, 22000f, "Default LPF Cutoff");
-                    // Immediately update the AudioLowPassFilter's cutoff when dragging.
-                    UpdateAudioSourceDefaultLPF();
-
-                    EditorGUILayout.IntSlider(occlusionResolutionProp, 0, 50, new GUIContent("Occlusion Resolution"));
-                    EditorGUILayout.Slider(occlusionSampleRadiusProp, 0f, 5f, "Occlusion Sample Radius");
-                }
-                EditorGUI.indentLevel--;
-            }
-            EditorGUILayout.EndVertical();
+            Selection.activeGameObject = _audioZone.soundShapeTracker;
+            EditorGUIUtility.PingObject(_audioZone.soundShapeTracker);
         }
+    }
+    GUI.enabled = true;
+
+    GUIContent reqIcon = _requireAudioSourceComponentProp.boolValue
+        ? EditorGUIUtility.IconContent("d_AudioSource Icon")
+        : EditorGUIUtility.IconContent("d_GameObject Icon");
+    if (GUILayout.Button(reqIcon, GUILayout.Width(30), GUILayout.Height(20)))
+        _requireAudioSourceComponentProp.boolValue = !_requireAudioSourceComponentProp.boolValue;
+    EditorGUILayout.EndHorizontal();
+
+    EditorGUILayout.BeginHorizontal();
+    bool newDual = GUILayout.Toggle(_enableDualAudioProp.boolValue, "Allow Dual Audio", "Button");
+    if (newDual != _enableDualAudioProp.boolValue)
+    {
+        _enableDualAudioProp.boolValue = newDual;
+        if (!newDual) _audioZone.DualAudioHandler.StopAndCleanup();
+    }
+
+    bool newOcc = GUILayout.Toggle(_enableOcclusionProp.boolValue, "Enable Occlusion", "Button");
+    if (newOcc != _enableOcclusionProp.boolValue)
+    {
+        _enableOcclusionProp.boolValue = newOcc;
+        if (newOcc) StoreDefaultOcclusion();
+        else        DisableOcclusion();
+    }
+    EditorGUILayout.EndHorizontal();
+
+    if (_enableOcclusionProp.boolValue)
+    {
+        EditorGUI.indentLevel++;
+        _showOcclusionSettings = EditorGUILayout.Foldout(_showOcclusionSettings, "Occlusion Settings", true);
+        if (_showOcclusionSettings)
+        {
+            // 3D / 2D tab
+            int modeIndex = _occlusion2DModeProp.boolValue ? 1 : 0;
+            int newIndex  = GUILayout.Toolbar(modeIndex, new[] { "3D", "2D" });
+            if (newIndex != modeIndex)
+                _occlusion2DModeProp.boolValue = newIndex == 1;
+
+            EditorGUILayout.PropertyField(_occlusionLayerProp, new GUIContent("Occlusion Layer"));
+
+            // shared sliders
+            EditorGUILayout.Slider(_occlusionVolumeMultiplierProp, 0f, 1f, "Volume Multiplier");
+            EditorGUILayout.Slider(_occlusionLowPassCutoffProp,   20f, 22000f, "Occlusion LPF Cutoff");
+            EditorGUILayout.Slider(_defaultLowPassCutoffProp,     20f, 22000f, "Default LPF Cutoff");
+            UpdateAudioSourceDefaultLpf();
+
+            // mode‑specific controls
+            if (_occlusion2DModeProp.boolValue)
+            {
+                EditorGUILayout.IntSlider(_occlusionResolutionProp, 1, 50, "Ray Count");
+                EditorGUILayout.Slider(_occlusion2DSpreadDegreesProp, 0f, 180f, "Spread Degrees");
+            }
+            else
+            {
+                EditorGUILayout.IntSlider(_occlusionResolutionProp, 1, 50, "Resolution");
+                EditorGUILayout.Slider(_occlusionSampleRadiusProp, 0f, 5f, "Sample Radius");
+            }
+        }
+        EditorGUI.indentLevel--;
+    }
+    EditorGUILayout.EndVertical();
+}
+
+
 
         private void StoreDefaultOcclusion()
         {
-            if (audioZone.audioSource != null)
+            if (_audioZone.audioSource)
             {
-                AudioLowPassFilter lowPass = audioZone.audioSource.GetComponent<AudioLowPassFilter>();
-                if (lowPass != null)
+                AudioLowPassFilter lowPass = _audioZone.audioSource.GetComponent<AudioLowPassFilter>();
+                if (lowPass)
                 {
-                    defaultLowPassCutoffProp.floatValue = lowPass.cutoffFrequency;
+                    _defaultLowPassCutoffProp.floatValue = lowPass.cutoffFrequency;
                 }
             }
         }
 
         private void DisableOcclusion()
         {
-            if (audioZone.audioSource != null)
+            if (_audioZone.audioSource)
             {
-                AudioLowPassFilter lowPass = audioZone.audioSource.GetComponent<AudioLowPassFilter>();
-                if (lowPass != null)
+                AudioLowPassFilter lowPass = _audioZone.audioSource.GetComponent<AudioLowPassFilter>();
+                if (lowPass)
                 {
-                    lowPass.cutoffFrequency = defaultLowPassCutoffProp.floatValue;
+                    lowPass.cutoffFrequency = _defaultLowPassCutoffProp.floatValue;
                 }
                 // Adjust volume back using the occlusion multiplier.
-                audioZone.audioSource.volume = audioZone.audioSource.volume / occlusionVolumeMultiplierProp.floatValue;
+                _audioZone.audioSource.volume = _audioZone.audioSource.volume / _occlusionVolumeMultiplierProp.floatValue;
             }
         }
 
-        private void UpdateAudioSourceDefaultLPF()
+        private void UpdateAudioSourceDefaultLpf()
         {
-            if (audioZone.audioSource != null)
+            if (_audioZone.audioSource)
             {
-                AudioLowPassFilter lowPass = audioZone.audioSource.GetComponent<AudioLowPassFilter>();
-                if (lowPass != null)
+                AudioLowPassFilter lowPass = _audioZone.audioSource.GetComponent<AudioLowPassFilter>();
+                if (lowPass)
                 {
-                    lowPass.cutoffFrequency = defaultLowPassCutoffProp.floatValue;
+                    lowPass.cutoffFrequency = _defaultLowPassCutoffProp.floatValue;
                 }
             }
         }
@@ -426,24 +446,24 @@ namespace TelePresent.SoundShapes
         {
             EditorGUILayout.BeginVertical("box");
             EditorGUI.indentLevel++;
-            ShowTargetSettingsFoldout = EditorGUILayout.Foldout(ShowTargetSettingsFoldout, "Target Settings", true, foldoutBoldStyle);
+            ShowTargetSettingsFoldout = EditorGUILayout.Foldout(ShowTargetSettingsFoldout, "Target Settings", true, _foldoutBoldStyle);
             if (ShowTargetSettingsFoldout)
             {
                 EditorGUILayout.Space();
-                int currentTrackingMode = trackingModeProp.enumValueIndex;
+                int currentTrackingMode = _trackingModeProp.enumValueIndex;
                 string[] trackingOptions = new string[]
                 {
-                "Track \"" + trackingTagProp.stringValue + "\" Tag",
+                "Track \"" + _trackingTagProp.stringValue + "\" Tag",
                 "Track Object"
                 };
                 int newTrackingMode = GUILayout.Toolbar(currentTrackingMode, trackingOptions);
                 if (newTrackingMode != currentTrackingMode)
-                    trackingModeProp.enumValueIndex = newTrackingMode;
+                    _trackingModeProp.enumValueIndex = newTrackingMode;
 
                 if (newTrackingMode == 0)
-                    EditorGUILayout.PropertyField(trackingTagProp, new GUIContent("Tracking Tag"));
+                    EditorGUILayout.PropertyField(_trackingTagProp, new GUIContent("Tracking Tag"));
                 else
-                    EditorGUILayout.PropertyField(trackingObjectProp, new GUIContent("Tracking Object"));
+                    EditorGUILayout.PropertyField(_trackingObjectProp, new GUIContent("Tracking Object"));
             }
             EditorGUI.indentLevel--;
             EditorGUILayout.EndVertical();
@@ -457,7 +477,7 @@ namespace TelePresent.SoundShapes
                 ShowTriggerSettingsFoldout,
                 "Trigger Settings",
                 true,
-                foldoutBoldStyle
+                _foldoutBoldStyle
             );
 
             if (ShowTriggerSettingsFoldout)
@@ -465,28 +485,28 @@ namespace TelePresent.SoundShapes
                 EditorGUILayout.Space();
 
                 // Flip Trigger Button
-                if (modeProp.enumValueIndex == (int)AudioZone.ZoneMode.Shape && audioZone.closedShape)
+                if (_modeProp.enumValueIndex == (int)AudioZone.ZoneMode.Shape && _audioZone.closedShape)
                 {
-                    string flipLabel = flipTriggerDistanceProp.boolValue ? "Flip Trigger: On" : "Flip Trigger: Off";
+                    string flipLabel = _flipTriggerDistanceProp.boolValue ? "Flip Trigger: On" : "Flip Trigger: Off";
                     bool newFlip = GUILayout.Toggle(
-                        flipTriggerDistanceProp.boolValue,
+                        _flipTriggerDistanceProp.boolValue,
                         new GUIContent(flipLabel, "Flips the trigger direction."),
                         "Button"
                     );
-                    if (newFlip != flipTriggerDistanceProp.boolValue)
+                    if (newFlip != _flipTriggerDistanceProp.boolValue)
                     {
-                        flipTriggerDistanceProp.boolValue = newFlip;
+                        _flipTriggerDistanceProp.boolValue = newFlip;
                     }
                 }
 
                 EditorGUILayout.BeginHorizontal();
 
                 EditorGUILayout.PropertyField(
-                    triggerDistanceOverrideProp,
+                    _triggerDistanceOverrideProp,
                     new GUIContent("Trigger Distance", "Set a value to 0 to use AudioSource Range.")
                 );
 
-                string rangeLabel = triggerDistanceOverrideProp.floatValue != 0f
+                string rangeLabel = _triggerDistanceOverrideProp.floatValue != 0f
                     ? "Using Override"
                     : "Using Audio Max Range";
 
@@ -495,9 +515,9 @@ namespace TelePresent.SoundShapes
                 EditorGUILayout.EndHorizontal();
 
                 // Prevent negative values
-                if (triggerDistanceOverrideProp.floatValue < 0f)
+                if (_triggerDistanceOverrideProp.floatValue < 0f)
                 {
-                    triggerDistanceOverrideProp.floatValue = 0f;
+                    _triggerDistanceOverrideProp.floatValue = 0f;
                 }
             }
 
@@ -511,10 +531,10 @@ namespace TelePresent.SoundShapes
             // Debug Settings
             EditorGUILayout.BeginVertical("box");
             EditorGUILayout.LabelField("Debug Settings", EditorStyles.boldLabel);
-            if (GUILayout.Button(audioZone.debugMode ? "Disable Debug Mode" : "Enable Debug Mode", GUILayout.Height(25)))
+            if (GUILayout.Button(_audioZone.debugMode ? "Disable Debug Mode" : "Enable Debug Mode", GUILayout.Height(25)))
             {
-                audioZone.debugMode = !audioZone.debugMode;
-                EditorUtility.SetDirty(audioZone);
+                _audioZone.debugMode = !_audioZone.debugMode;
+                EditorUtility.SetDirty(_audioZone);
             }
             EditorGUILayout.EndVertical();
 
@@ -527,31 +547,31 @@ namespace TelePresent.SoundShapes
             // Editor Preview Toggle Button
             EditorGUI.BeginDisabledGroup(Application.isPlaying);
             GUIContent previewToggleContent = GetIconContent(
-                audioZone.editorPreview ? "  Stop Preview" : "  Start Preview",
-                audioZone.editorPreview ? previewOff : previewOn);
+                _audioZone.editorPreview ? "  Stop Preview" : "  Start Preview",
+                _audioZone.editorPreview ? _previewOff : _previewOn);
 
-            bool newEditorPrev = GUI.Toggle(previewRect, audioZone.editorPreview, previewToggleContent, "Button");
-            if (newEditorPrev != audioZone.editorPreview)
+            bool newEditorPrev = GUI.Toggle(previewRect, _audioZone.editorPreview, previewToggleContent, "Button");
+            if (newEditorPrev != _audioZone.editorPreview)
             {
-                audioZone.editorPreview = newEditorPrev;
-                if (audioZone.editorPreview)
+                _audioZone.editorPreview = newEditorPrev;
+                if (_audioZone.editorPreview)
                 {
-                    if (audioZone.mode != AudioZone.ZoneMode.MultiEmitter &&
-                        audioZone.audioSource != null &&
-                        audioZone.audioSource.enabled && !audioZone.audioSource.isPlaying)
+                    if (_audioZone.mode != AudioZone.ZoneMode.MultiEmitter &&
+                        _audioZone.audioSource &&
+                        _audioZone.audioSource.enabled && !_audioZone.audioSource.isPlaying)
                     {
-                        if (audioZone.mode == AudioZone.ZoneMode.Mesh)
+                        if (_audioZone.mode == AudioZone.ZoneMode.Mesh)
                         {
-                            AudioZoneGeometry.GenerateMeshData(audioZone);
+                            AudioZoneGeometry.GenerateMeshData(_audioZone);
                         }
                     }
-                    if (audioZone.audioSource)
-                        audioZone.audioSource.Play();
+                    if (_audioZone.audioSource)
+                        _audioZone.audioSource.Play();
                 }
                 else
                 {
-                    if (audioZone.audioSource)
-                        audioZone.StopPreview();
+                    if (_audioZone.audioSource)
+                        _audioZone.StopPreview();
                 }
             }
             EditorGUI.EndDisabledGroup();
@@ -579,40 +599,37 @@ namespace TelePresent.SoundShapes
         // Helper method to return a GUIContent with fallback to text if the icon is null.
         private GUIContent GetIconContent(string text, Texture2D icon)
         {
-            if (icon == null)
+            if (!icon)
                 return new GUIContent(text);
             return new GUIContent(text, icon);
         }
 
         private void InitializeFoldoutStyle()
         {
-            if (foldoutBoldStyle == null)
+            _foldoutBoldStyle ??= new GUIStyle(EditorStyles.foldout)
             {
-                foldoutBoldStyle = new GUIStyle(EditorStyles.foldout)
-                {
-                    fontStyle = FontStyle.Bold,
-                    padding = new RectOffset(20, 0, 0, 0)
-                };
-            }
+                fontStyle = FontStyle.Bold,
+                padding = new RectOffset(20, 0, 0, 0)
+            };
         }
 
         private void InitSceneViewStyles()
         {
-            if (sceneBoxStyle != null)
+            if (_sceneBoxStyle != null)
                 return;
 
-            sceneBoxStyle = new GUIStyle("box")
+            _sceneBoxStyle = new GUIStyle("box")
             {
                 normal = { textColor = Color.white },
                 alignment = TextAnchor.UpperLeft,
                 padding = new RectOffset(8, 8, 8, 8)
             };
-            sceneTitleStyle = new GUIStyle(EditorStyles.boldLabel)
+            _sceneTitleStyle = new GUIStyle(EditorStyles.boldLabel)
             {
                 normal = { textColor = Color.white },
                 fontSize = 12
             };
-            sceneLabelStyle = new GUIStyle(EditorStyles.label)
+            _sceneLabelStyle = new GUIStyle(EditorStyles.label)
             {
                 normal = { textColor = Color.white },
                 fontSize = 11
@@ -637,7 +654,7 @@ namespace TelePresent.SoundShapes
                 EditorUtility.SetDirty(zone);
                 if (enablePreview)
                 {
-                    if (zone.mode != AudioZone.ZoneMode.MultiEmitter && zone.audioSource != null && !zone.audioSource.isPlaying)
+                    if (zone.mode != AudioZone.ZoneMode.MultiEmitter && zone.audioSource && !zone.audioSource.isPlaying)
                     {
                         zone.audioSource.loop = true;
                         zone.audioSource.Play();

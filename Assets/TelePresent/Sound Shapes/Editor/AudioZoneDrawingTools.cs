@@ -15,13 +15,13 @@ namespace TelePresent.SoundShapes
 {
 public static class AudioZoneDrawingTools
 {
-    private static int s_selectedShapeIndex = -1;
-    private static int s_selectedMultiEmitterIndex = -1;
-    public static SoundShapes_BVH bvh;
+    private static int sSelectedShapeIndex = -1;
+    private static int sSelectedMultiEmitterIndex = -1;
+    private static SoundShapesBvh bvh;
 
     #region BVH Rebuild
 
-    public static void RebuildBVH()
+    public static void RebuildBvh()
     {
         // Clear previous BVH data
         if (bvh != null)
@@ -32,143 +32,150 @@ public static class AudioZoneDrawingTools
 
         // Gather nodes from GameObjects that have a MeshFilter with a valid sharedMesh
         var allGameObjects = Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
-        List<SoundShapes_BVHNode> nodeList = new List<SoundShapes_BVHNode>();
+        List<SoundShapesBvhNode> nodeList = new List<SoundShapesBvhNode>();
         foreach (var go in allGameObjects)
         {
-            if (go.TryGetComponent<MeshFilter>(out MeshFilter mf) && mf.sharedMesh != null)
-                nodeList.Add(new SoundShapes_BVHNode(go));
+            if (go.TryGetComponent(out MeshFilter mf) && mf.sharedMesh)
+                nodeList.Add(new SoundShapesBvhNode(go));
         }
         // Build a new BVH from the gathered nodes
-        bvh = new SoundShapes_BVH(nodeList.ToArray());
+        bvh = new SoundShapesBvh(nodeList.ToArray());
     }
 
     #endregion
 
     #region Main Overlay
 
-    public static void DrawSceneOverlayUI(
-        AudioZone zone,
-        bool isShapeDrawing,
-        bool isMultiEmitterDrawing,
-        Plane drawingPlane,
-        GUIStyle boxStyle,
-        GUIStyle titleStyle,
-        GUIStyle labelStyle
-    )
+public static void DrawSceneOverlayUI(
+    AudioZone zone,
+    bool isShapeDrawing,
+    bool isMultiEmitterDrawing,
+    Plane drawingPlane,
+    GUIStyle boxStyle,
+    GUIStyle titleStyle,
+    GUIStyle labelStyle
+)
+{
+    bool inDrawingMode =
+        (zone.mode == AudioZone.ZoneMode.Shape && isShapeDrawing) ||
+        (zone.mode == AudioZone.ZoneMode.MultiEmitter && isMultiEmitterDrawing);
+
+    if (!inDrawingMode)
     {
-        bool inDrawingMode = (zone.mode == AudioZone.ZoneMode.Shape && isShapeDrawing) ||
-                             (zone.mode == AudioZone.ZoneMode.MultiEmitter && isMultiEmitterDrawing);
-        if (!inDrawingMode)
-        {
-            HandleExistingPoints(zone);
-            return;
-        }
+        HandleExistingPoints(zone);
+        return;
+    }
 
-        Handles.BeginGUI();
-        const float WINDOW_WIDTH = 300f;
-        // Increased window height to allow for the additional collider toggle controls
-        const float WINDOW_HEIGHT = 180f;
-        const float PADDING = 15f;
+    Handles.BeginGUI();
 
-        // Set overlay background style
-        boxStyle.normal.background = MakeTex(2, 2, new Color(0.1f, 0.1f, 0.1f, 0.85f));
-        boxStyle.padding = new RectOffset(10, 10, 10, 10);
+    const float windowWidth  = 300f;
+    float windowHeight = 175f;
+    const float padding      = 15f;
+    
+    if (SceneView.lastActiveSceneView && SceneView.lastActiveSceneView.in2DMode)
+        windowHeight += 25f;
+    
+    boxStyle.normal.background = MakeTex(2, 2, new Color(0.1f, 0.1f, 0.1f, 0.85f));
+    boxStyle.padding           = new RectOffset(10, 10, 10, 10);
 
-        GUILayout.BeginArea(new Rect(PADDING + 35, PADDING, WINDOW_WIDTH, WINDOW_HEIGHT), boxStyle);
+    GUILayout.BeginArea(new Rect(padding + 35, padding, windowWidth, windowHeight), boxStyle);
+
         GUILayout.Space(5);
         GUI.color = new Color(0.9f, 0.9f, 1f);
-
-        GUILayout.Label(zone.mode == AudioZone.ZoneMode.Shape ? "SHAPE DRAWING MODE" : "MULTI-EMITTER DRAWING MODE", titleStyle);
+        GUILayout.Label(
+            zone.mode == AudioZone.ZoneMode.Shape
+                ? "SHAPE DRAWING MODE"
+                : "MULTI‑EMITTER DRAWING MODE",
+            titleStyle);
         GUI.color = Color.white;
         GUILayout.Space(5);
 
         labelStyle.wordWrap = true;
         labelStyle.fontSize = 11;
-        GUILayout.Label(
-            "• Left-click: Add/insert point\n" +
-            "• ESC or exit: Stop drawing\n" +
-            "• Delete key: Remove selected point",
-            labelStyle
-        );
+        GUILayout.Label("• Left‑click: Add/insert point\n• ESC: Stop drawing\n• Delete: Remove point", labelStyle);
         GUILayout.Space(10);
+
         GUILayout.BeginVertical();
 
-        // Shape-mode toggles: Freehand and Closed Shape
-        GUILayout.BeginHorizontal();
-        Color prevColor = GUI.backgroundColor;
-        if (zone.mode == AudioZone.ZoneMode.Shape)
-        {
-            GUI.backgroundColor = zone.freehandMode ? new Color(0.4f, 0.8f, 0.4f) : new Color(0.3f, 0.3f, 0.3f);
-            if (GUILayout.Button("Freehand", GUILayout.Height(24)))
-            {
-                zone.freehandMode = !zone.freehandMode;
-                EditorUtility.SetDirty(zone);
-            }
-            GUI.backgroundColor = zone.closedShape ? new Color(0.4f, 0.8f, 0.4f) : new Color(0.3f, 0.3f, 0.3f);
-            if (GUILayout.Button("Closed Shape", GUILayout.Height(24)))
-            {
-                zone.closedShape = !zone.closedShape;
-                EditorUtility.SetDirty(zone);
-            }
-        }
-        // Clear button for both modes
-        GUI.backgroundColor = new Color(0.8f, 0.3f, 0.3f);
-        if (GUILayout.Button("Clear", GUILayout.Height(24)))
-        {
-            Undo.RecordObject(zone, "Clear Points");
-            if (zone.mode == AudioZone.ZoneMode.Shape)
-            {
-                zone.points.Clear();
-                s_selectedShapeIndex = -1;
-            }
-            else if (zone.mode == AudioZone.ZoneMode.MultiEmitter)
-            {
-                zone.multiEmitterPoints.Clear();
-                s_selectedMultiEmitterIndex = -1;
-            }
-            EditorUtility.SetDirty(zone);
-        }
-        GUI.backgroundColor = prevColor;
-        GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+                Color prevColor = GUI.backgroundColor;
 
-        GUILayout.Space(8);
+                if (zone.mode == AudioZone.ZoneMode.Shape)
+                {
+                    GUI.backgroundColor = zone.freehandMode ? new Color(0.4f, 0.8f, 0.4f) : new Color(0.3f, 0.3f, 0.3f);
+                    if (GUILayout.Button("Freehand", GUILayout.Height(24)))
+                    {
+                        zone.freehandMode = !zone.freehandMode;
+                        EditorUtility.SetDirty(zone);
+                    }
 
-        // Draw on Mesh toggle and offset (using persistent settings)
-        GUILayout.BeginHorizontal();
-        GUI.backgroundColor = SoundShapesSettings.DrawOnMesh ? new Color(0.4f, 0.8f, 0.4f) : new Color(0.3f, 0.3f, 0.3f);
-        if (GUILayout.Button("Draw on Mesh", GUILayout.Width(100)))
-        {
-            SoundShapesSettings.DrawOnMesh = !SoundShapesSettings.DrawOnMesh;
-        }
-        GUI.backgroundColor = prevColor;
-        GUILayout.Space(5);
-        GUILayout.Label("Height Offset:", GUILayout.Width(80));
-        SoundShapesSettings.DrawMeshHeightOffset = EditorGUILayout.FloatField(SoundShapesSettings.DrawMeshHeightOffset, GUILayout.Width(60));
-        GUILayout.EndHorizontal();
+                    GUI.backgroundColor = zone.closedShape ? new Color(0.4f, 0.8f, 0.4f) : new Color(0.3f, 0.3f, 0.3f);
+                    if (GUILayout.Button("Closed Shape", GUILayout.Height(24)))
+                    {
+                        zone.closedShape = !zone.closedShape;
+                        EditorUtility.SetDirty(zone);
+                    }
+                }
 
-        GUILayout.Space(5);
+                GUI.backgroundColor = new Color(0.8f, 0.3f, 0.3f);
+                if (GUILayout.Button("Clear", GUILayout.Height(24)))
+                {
+                    Undo.RecordObject(zone, "Clear Points");
+                    if (zone.mode == AudioZone.ZoneMode.Shape)
+                        zone.points.Clear();
+                    else
+                        zone.multiEmitterPoints.Clear();
 
-        // Draw on Collider toggle (using persistent settings)
-        GUILayout.BeginHorizontal();
-        GUIStyle smallButtonStyle = new GUIStyle(GUI.skin.button);
-        smallButtonStyle.fontSize = 11; // set desired font size
+                    sSelectedShapeIndex        = -1;
+                    sSelectedMultiEmitterIndex = -1;
+                    EditorUtility.SetDirty(zone);
+                }
 
-        GUI.backgroundColor = SoundShapesSettings.DrawOnCollider ? new Color(0.4f, 0.8f, 0.4f) : new Color(0.3f, 0.3f, 0.3f);
-        if (GUILayout.Button("Draw on Collider", smallButtonStyle, GUILayout.Width(100)))
-        {
-            SoundShapesSettings.DrawOnCollider = !SoundShapesSettings.DrawOnCollider;
-        }
-        GUI.backgroundColor = prevColor;
-        GUILayout.EndHorizontal();
+                GUI.backgroundColor = prevColor;
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(8);
+
+            GUILayout.BeginHorizontal();
+                GUI.backgroundColor = SoundShapesSettings.DrawOnMesh ? new Color(0.4f, 0.8f, 0.4f) : new Color(0.3f, 0.3f, 0.3f);
+                if (GUILayout.Button("Draw on Mesh", GUILayout.Width(100)))
+                    SoundShapesSettings.DrawOnMesh = !SoundShapesSettings.DrawOnMesh;
+
+                GUI.backgroundColor = prevColor;
+                GUILayout.Space(5);
+                GUILayout.Label("Height Offset:", GUILayout.Width(80));
+                SoundShapesSettings.DrawMeshHeightOffset =
+                    EditorGUILayout.FloatField(SoundShapesSettings.DrawMeshHeightOffset, GUILayout.Width(60));
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(5);
+
+            GUILayout.BeginHorizontal();
+                var smallButtonStyle = new GUIStyle(GUI.skin.button) { fontSize = 11 };
+                GUI.backgroundColor = SoundShapesSettings.DrawOnCollider ? new Color(0.4f, 0.8f, 0.4f) : new Color(0.3f, 0.3f, 0.3f);
+                if (GUILayout.Button("Draw on Collider", smallButtonStyle, GUILayout.Width(100)))
+                    SoundShapesSettings.DrawOnCollider = !SoundShapesSettings.DrawOnCollider;
+                GUI.backgroundColor = prevColor;
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(5);
+
+            GUILayout.BeginHorizontal();
+                GUILayout.Label("2D Z‑Depth:", GUILayout.Width(80));
+                float newDepth = EditorGUILayout.FloatField(SoundShapesSettings.TwoDZDepth, GUILayout.Width(60));
+                if (!Mathf.Approximately(newDepth, SoundShapesSettings.TwoDZDepth))
+                    SoundShapesSettings.TwoDZDepth = newDepth;
+            GUILayout.EndHorizontal();
 
         GUILayout.EndVertical();
-        GUILayout.EndArea();
 
-        Handles.EndGUI();
+    GUILayout.EndArea();
+    Handles.EndGUI();
 
-        HandleDrawingMode(zone, drawingPlane);
-        HandleExistingPoints(zone);
-    }
+    HandleDrawingMode(zone, drawingPlane);
+    HandleExistingPoints(zone);
+}
+
 
     #endregion
 
@@ -191,7 +198,7 @@ public static class AudioZoneDrawingTools
 
     #region Shape-Specific Logic
 
-    public static void DrawShapeOutline(AudioZone zone)
+    private static void DrawShapeOutline(AudioZone zone)
     {
         if (zone.points == null || zone.points.Count == 0)
             return;
@@ -208,7 +215,7 @@ public static class AudioZoneDrawingTools
             for (int i = 0; i < worldPoints.Length - 1; i++)
                 Handles.DrawAAPolyLine(2f, worldPoints[i], worldPoints[i + 1]);
             // Close the loop
-            Handles.DrawAAPolyLine(2f, worldPoints[worldPoints.Length - 1], worldPoints[0]);
+            Handles.DrawAAPolyLine(2f, worldPoints[^1], worldPoints[0]);
         }
         else
         {
@@ -225,12 +232,12 @@ public static class AudioZoneDrawingTools
     {
         Event e = Event.current;
         if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Delete &&
-            s_selectedShapeIndex >= 0 && s_selectedShapeIndex < zone.points.Count)
+            sSelectedShapeIndex >= 0 && sSelectedShapeIndex < zone.points.Count)
         {
             Undo.RecordObject(zone, "Delete Shape Point");
-            zone.points.RemoveAt(s_selectedShapeIndex);
+            zone.points.RemoveAt(sSelectedShapeIndex);
             EditorUtility.SetDirty(zone);
-            s_selectedShapeIndex = -1;
+            sSelectedShapeIndex = -1;
             e.Use();
             return;
         }
@@ -241,9 +248,9 @@ public static class AudioZoneDrawingTools
             Vector3 worldPos = zoneTransform.TransformPoint(zone.points[i]);
             float handleSize = HandleUtility.GetHandleSize(worldPos) * 0.08f;
             if (Handles.Button(worldPos, Quaternion.identity, handleSize, handleSize, Handles.DotHandleCap))
-                s_selectedShapeIndex = i;
+                sSelectedShapeIndex = i;
 
-            if (i == s_selectedShapeIndex)
+            if (i == sSelectedShapeIndex)
             {
                 EditorGUI.BeginChangeCheck();
                 Vector3 newWorld = Handles.PositionHandle(worldPos, Quaternion.identity);
@@ -306,12 +313,12 @@ public static class AudioZoneDrawingTools
     {
         Event e = Event.current;
         if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Delete &&
-            s_selectedMultiEmitterIndex >= 0 && s_selectedMultiEmitterIndex < zone.multiEmitterPoints.Count)
+            sSelectedMultiEmitterIndex >= 0 && sSelectedMultiEmitterIndex < zone.multiEmitterPoints.Count)
         {
             Undo.RecordObject(zone, "Delete Multi Emitter Point");
-            zone.multiEmitterPoints.RemoveAt(s_selectedMultiEmitterIndex);
+            zone.multiEmitterPoints.RemoveAt(sSelectedMultiEmitterIndex);
             EditorUtility.SetDirty(zone);
-            s_selectedMultiEmitterIndex = -1;
+            sSelectedMultiEmitterIndex = -1;
             e.Use();
             return;
         }
@@ -322,9 +329,9 @@ public static class AudioZoneDrawingTools
             Vector3 worldPt = zoneTransform.TransformPoint(zone.multiEmitterPoints[i]);
             float handleSize = HandleUtility.GetHandleSize(worldPt) * 0.08f;
             if (Handles.Button(worldPt, Quaternion.identity, handleSize, handleSize, Handles.DotHandleCap))
-                s_selectedMultiEmitterIndex = i;
+                sSelectedMultiEmitterIndex = i;
 
-            if (i == s_selectedMultiEmitterIndex)
+            if (i == sSelectedMultiEmitterIndex)
             {
                 EditorGUI.BeginChangeCheck();
                 Vector3 newWorld = Handles.PositionHandle(worldPt, Quaternion.identity);
@@ -342,70 +349,89 @@ public static class AudioZoneDrawingTools
 
     #region Shared Helpers
 
-    public static Vector3 GetDrawingPoint(AudioZone zone, Plane drawingPlane, Ray ray)
+private static Vector3 GetDrawingPoint(AudioZone zone, Plane drawingPlane, Ray ray)
+{
+    Vector3 meshHitPoint   = Vector3.zero;
+    bool    meshHitFound   = false;
+    float   meshHitDist    = float.MaxValue;
+
+    if (SoundShapesSettings.DrawOnMesh &&
+        TryBvhRaycast(ray, out meshHitPoint))
     {
-        // Try to get a hit point from the mesh (BVH) raycast using persistent settings
-        Vector3 meshHitPoint = Vector3.zero;
-        bool meshHitFound = false;
-        float meshHitDistance = float.MaxValue;
-        if (SoundShapesSettings.DrawOnMesh)
-        {
-            if (TryBVHRaycast(ray, out meshHitPoint))
-            {
-                meshHitPoint.y += SoundShapesSettings.DrawMeshHeightOffset;
-                meshHitDistance = Vector3.Distance(ray.origin, meshHitPoint);
-                meshHitFound = true;
-            }
-        }
-
-        // Try to get a hit point from the collider raycast using persistent settings
-        Vector3 colliderHitPoint = Vector3.zero;
-        bool colliderHitFound = false;
-        float colliderHitDistance = float.MaxValue;
-        if (SoundShapesSettings.DrawOnCollider)
-        {
-            if (Physics.Raycast(ray, out RaycastHit hit))
-            {
-                colliderHitPoint = hit.point;
-                colliderHitDistance = hit.distance;
-                colliderHitFound = true;
-            }
-        }
-
-        // Choose the hit point that is closest to the ray origin if both are found
-        Vector3 worldPoint = Vector3.zero;
-        if (meshHitFound && colliderHitFound)
-        {
-            worldPoint = (meshHitDistance <= colliderHitDistance) ? meshHitPoint : colliderHitPoint;
-        }
-        else if (meshHitFound)
-        {
-            worldPoint = meshHitPoint;
-        }
-        else if (colliderHitFound)
-        {
-            worldPoint = colliderHitPoint;
-        }
-        else
-        {
-            // Fall back to the drawing plane if no collider or mesh hit is found
-            if (drawingPlane.Raycast(ray, out float enter))
-            {
-                worldPoint = ray.GetPoint(enter);
-                worldPoint.y = zone.transform.position.y;
-            }
-        }
-        return worldPoint;
+        meshHitPoint.y += SoundShapesSettings.DrawMeshHeightOffset;
+        meshHitDist     = Vector3.Distance(ray.origin, meshHitPoint);
+        meshHitFound    = true;
     }
 
-    private static bool TryBVHRaycast(Ray ray, out Vector3 hitPoint)
+    Vector3 colliderHitPoint = Vector3.zero;
+    bool    colliderHitFound = false;
+    float   colliderHitDist  = float.MaxValue;
+
+    if (SoundShapesSettings.DrawOnCollider &&
+        Physics.Raycast(ray, out RaycastHit hit))
+    {
+        colliderHitPoint = hit.point;
+        colliderHitDist  = hit.distance;
+        colliderHitFound = true;
+    }
+
+    Vector3 worldPoint = Vector3.zero;
+    bool    gotPoint   = false;
+
+    if (meshHitFound && colliderHitFound)
+    {
+        worldPoint = meshHitDist <= colliderHitDist ? meshHitPoint : colliderHitPoint;
+        gotPoint   = true;
+    }
+    else if (meshHitFound)
+    {
+        worldPoint = meshHitPoint;
+        gotPoint   = true;
+    }
+    else if (colliderHitFound)
+    {
+        worldPoint = colliderHitPoint;
+        gotPoint   = true;
+    }
+    else if (drawingPlane.Raycast(ray, out float enter))
+    {
+        worldPoint   = ray.GetPoint(enter);
+        worldPoint.y = zone.transform.position.y;
+        gotPoint     = true;
+    }
+
+    if (SceneView.lastActiveSceneView &&
+        SceneView.lastActiveSceneView.in2DMode)
+    {
+        if (!gotPoint)
+        {
+            float dirZ = ray.direction.z;
+            if (Mathf.Abs(dirZ) >= 1e-6f)
+            {
+                float t = (SoundShapesSettings.TwoDZDepth - ray.origin.z) / dirZ;
+                worldPoint = ray.origin + ray.direction * t;
+            }
+            else
+            {
+                worldPoint = ray.origin;
+            }
+        }
+
+        worldPoint.z = SoundShapesSettings.TwoDZDepth;
+    }
+
+    return worldPoint;
+}
+
+
+    private static bool TryBvhRaycast(Ray ray, out Vector3 hitPoint)
     {
         hitPoint = Vector3.zero;
         if (bvh == null)
             return false;
 
         List<(float distance, Vector3 point, GameObject obj)> hits = new List<(float, Vector3, GameObject)>();
-        List<SoundShapes_BVHNode> potentialHits = bvh.Traverse(ray);
+        List<SoundShapesBvhNode> potentialHits = bvh.Traverse(ray);
         if (potentialHits == null || potentialHits.Count == 0)
             return false;
 
@@ -415,7 +441,7 @@ public static class AudioZoneDrawingTools
             {
                 foreach (var (nodeHitPoint, nodeHitObj) in nodeHits)
                 {
-                    if (nodeHitObj == null)
+                    if (!nodeHitObj)
                         continue;
                     float dist = Vector3.Distance(ray.origin, nodeHitPoint);
                     hits.Add((dist, nodeHitPoint, nodeHitObj));
@@ -431,7 +457,7 @@ public static class AudioZoneDrawingTools
         return false;
     }
 
-    public static bool TryInsertPointOnSegment(AudioZone zone, Vector3 worldPoint, float threshold)
+    private static bool TryInsertPointOnSegment(AudioZone zone, Vector3 worldPoint, float threshold)
     {
         int count = zone.points.Count;
         if (count < 2)
@@ -489,7 +515,8 @@ public static class AudioZoneDrawingTools
             Transform zoneTransform = zone.transform;
             Vector3[] worldPoints = new Vector3[count];
             for (int i = 0; i < count; i++)
-                worldPoints[i] = zoneTransform.TransformPoint(zone.points[i]);
+                if (zone.points != null)
+                    worldPoints[i] = zoneTransform.TransformPoint(zone.points[i]);
 
             // Compute a best-fit plane for the polygon using the first three points.
             // (This assumes the points are coplanar.)
@@ -516,9 +543,9 @@ public static class AudioZoneDrawingTools
             // Draw each triangle
             Color fillColor = new Color(0.2f, 1f, 0.2f, 0.2f);
             Handles.color = fillColor;
-            for (int i = 0; i < indices.Length; i += 3)
+            for (var i = 0; i < indices.Length; i += 3)
             {
-                Vector3[] triangle = new Vector3[3]
+                Vector3[] triangle = new Vector3[]
                 {
             worldPoints[indices[i]],
             worldPoints[indices[i + 1]],
@@ -654,7 +681,8 @@ public static class AudioZoneDrawingTools
     {
         return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
     }
-    public static Vector3 ProjectPointOnLineSegment(Vector3 a, Vector3 b, Vector3 point)
+
+    private static Vector3 ProjectPointOnLineSegment(Vector3 a, Vector3 b, Vector3 point)
     {
         Vector3 ab = b - a;
         float t = Vector3.Dot(point - a, ab) / ab.sqrMagnitude;

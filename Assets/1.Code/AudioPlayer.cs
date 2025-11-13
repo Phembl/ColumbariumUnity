@@ -16,14 +16,10 @@ public class AudioPlayer : MonoBehaviour
         audioSource = GetComponent<AudioSource>();
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
     public void PlayAudio(AudioClip audioClip)
     {
+        Debug.Log("Playing storyPoint Audio for storypoint: " + gameObject.name);
+        
         audioSource.clip = audioClip;
         audioSource.Play();
         StartCoroutine(WaitForAudioEnd());
@@ -31,6 +27,8 @@ public class AudioPlayer : MonoBehaviour
 
     public void PauseAudio()
     {
+        Debug.Log("Pausing storyPoint Audio for storypoint: " + gameObject.name);
+        
         isPaused = true;
         DOTween.Kill(audioSource);
         audioSource.DOFade(0f, 0.2f)
@@ -40,10 +38,20 @@ public class AudioPlayer : MonoBehaviour
 
     public void UnpauseAudio()
     {
+        Debug.Log("Unpausing storyPoint Audio for storypoint: " + gameObject.name);
+        
         isPaused = false;
         audioSource.UnPause();
         DOTween.Kill(audioSource);
         audioSource.DOFade(1f, 0.2f);
+    }
+    
+    public void StopAudio(bool fade = true)
+    {
+        Debug.Log("Stoping storyPoint Audio for storypoint: " + gameObject.name);
+        
+        shouldBeDestroyed = true;
+        shouldFade = fade;
     }
     
     private IEnumerator WaitForAudioEnd()
@@ -62,13 +70,9 @@ public class AudioPlayer : MonoBehaviour
             Destroy(gameObject);
         }
 
-        StoryManager.Instance.StoryAudioHasFinished();
+        //StoryManager.Instance.StoryAudioHasFinished();
 
     }
 
-    public void StopAudio(bool fade = true)
-    {
-        shouldBeDestroyed = true;
-        shouldFade = fade;
-    }
+  
 }

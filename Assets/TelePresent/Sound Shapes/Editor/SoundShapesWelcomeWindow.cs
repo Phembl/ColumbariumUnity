@@ -8,7 +8,7 @@ Product - Sound Shapes
 /*******************************************************/
 
 
-
+using System;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -20,19 +20,19 @@ namespace TelePresent.SoundShapes
     [InitializeOnLoad]
     public class SoundShapesWelcomeWindow : EditorWindow
     {
-        private Texture2D docsIcon;
-        private Texture2D discordIcon;
+        private Texture2D _docsIcon;
+        private Texture2D _discordIcon;
         private const string IconsFolderPath = "Assets/TelePresent/Sound Shapes/Editor/";
         private const string DocsIconPath = IconsFolderPath + "docs.png";
         private const string DiscordIconPath = IconsFolderPath + "discord.png";
 
-        private double animationTimer;
-        private double lastTime;
+        private double _animationTimer;
+        private double _lastTime;
         private const float AnimationSpeed = 2f;
-        private Vector2 newsScrollPos;
-        private List<NewsItem> newsItems = new List<NewsItem>();
-        private bool isLoadingNews = false;
-        private string newsLoadError = "";
+        private Vector2 _newsScrollPos;
+        private readonly List<NewsItem> _newsItems = new List<NewsItem>();
+        private bool _isLoadingNews;
+        private string _newsLoadError = "";
 
         static SoundShapesWelcomeWindow()
         {
@@ -61,7 +61,8 @@ namespace TelePresent.SoundShapes
             get => SoundShapes_EditorStartupHelper.DisplayWelcomeOnLaunch;
             set => SoundShapes_EditorStartupHelper.DisplayWelcomeOnLaunch = value;
         }
-        public static void ShowWindow()
+
+        private static void ShowWindow()
         {
             var window = GetWindow<SoundShapesWelcomeWindow>("Welcome Window");
             window.minSize = new Vector2(500, 650); 
@@ -70,11 +71,11 @@ namespace TelePresent.SoundShapes
 
         private void OnEnable()
         {
-            docsIcon = LoadIcon(DocsIconPath);
-            discordIcon = LoadIcon(DiscordIconPath);
+            _docsIcon = LoadIcon(DocsIconPath);
+            _discordIcon = LoadIcon(DiscordIconPath);
 
-            lastTime = EditorApplication.timeSinceStartup;
-            animationTimer = 0f;
+            _lastTime = EditorApplication.timeSinceStartup;
+            _animationTimer = 0f;
             EditorApplication.update += UpdateAnimation;
 
             FetchNews();
@@ -92,8 +93,8 @@ namespace TelePresent.SoundShapes
 
         private async void FetchNews()
         {
-            isLoadingNews = true;
-            newsLoadError = "";
+            _isLoadingNews = true;
+            _newsLoadError = "";
             Repaint();
 
             string url = "https://telepresentgames.dk/Unity%20Asset/SoundShapes/SoundShapesNewsUpdates.txt";
@@ -108,7 +109,7 @@ namespace TelePresent.SoundShapes
 
                 if (request.result != UnityWebRequest.Result.Success)
                 {
-                    newsLoadError = "Encountered an error loading news, no biggie, though!";
+                    _newsLoadError = "Encountered an error loading news, no biggie, though!";
 
                 }
                 else
@@ -116,24 +117,24 @@ namespace TelePresent.SoundShapes
                     ParseNews(request.downloadHandler.text);
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                newsLoadError = $"Encountered an error loading news, no biggie, though!: {ex.Message}";
+                _newsLoadError = $"Encountered an error loading news, no biggie, though!: {ex.Message}";
             }
 
-            isLoadingNews = false;
+            _isLoadingNews = false;
             Repaint();
         }
 
         private void ParseNews(string rawText)
         {
-            newsItems.Clear();
+            _newsItems.Clear();
             string[] separators = new string[] { "\n---\n", "\r\n---\r\n" };
-            string[] entries = rawText.Split(separators, System.StringSplitOptions.RemoveEmptyEntries);
+            string[] entries = rawText.Split(separators, StringSplitOptions.RemoveEmptyEntries);
 
             foreach (var entry in entries)
             {
-                string[] lines = entry.Split(new[] { '\n', '\r' }, System.StringSplitOptions.RemoveEmptyEntries);
+                string[] lines = entry.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
                 if (lines.Length >= 3)
                 {
                     string dateLine = lines[0].Trim();
@@ -145,7 +146,7 @@ namespace TelePresent.SoundShapes
                         dateLine = dateLine.Substring(1, dateLine.Length - 2);
                     }
 
-                    newsItems.Add(new NewsItem
+                    _newsItems.Add(new NewsItem
                     {
                         Date = dateLine,
                         Headline = headlineLine,
@@ -162,9 +163,9 @@ namespace TelePresent.SoundShapes
         private void UpdateAnimation()
         {
             double currentTime = EditorApplication.timeSinceStartup;
-            double deltaTime = currentTime - lastTime;
-            lastTime = currentTime;
-            animationTimer += deltaTime * AnimationSpeed;
+            double deltaTime = currentTime - _lastTime;
+            _lastTime = currentTime;
+            _animationTimer += deltaTime * AnimationSpeed;
             Repaint();
         }
 
@@ -211,13 +212,13 @@ namespace TelePresent.SoundShapes
             DrawCenteredButton(
                 "Documentation",
                 "Learn about features, setup, and best practices.",
-                docsIcon,
+                _docsIcon,
                 () => Application.OpenURL("https://telepresentgames.dk/Unity%20Asset/SoundShapes/Sound%20Shapes%20Documentation.pdf")
             );
             DrawAnimatedDiscordButton();
         }
 
-        private void DrawCenteredButton(string title, string description, Texture2D icon, System.Action onClick)
+        private void DrawCenteredButton(string buttonTitle, string description, Texture2D icon, Action onClick)
         {
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
@@ -225,7 +226,7 @@ namespace TelePresent.SoundShapes
             GUILayout.Label(description, GetDescriptionStyle(), GUILayout.Width(350)); 
             GUILayout.Space(5);
 
-            var content = icon != null ? new GUIContent($"  {title}", icon) : new GUIContent($"  {title}");
+            var content = icon ? new GUIContent($"  {buttonTitle}", icon) : new GUIContent($"  {buttonTitle}");
             if (GUILayout.Button(content, GetButtonStyle(), GUILayout.Width(350), GUILayout.Height(45))) 
             {
                 onClick?.Invoke();
@@ -245,7 +246,7 @@ namespace TelePresent.SoundShapes
             GUILayout.Label("Ask questions, troubleshoot, and share your work!", GetDescriptionStyle(), GUILayout.Width(350));
             GUILayout.Space(5);
 
-            Color animatedColor = Color.Lerp(Color.white, new Color(1f, 0.5f, 0.5f), (Mathf.Sin((float)animationTimer) + 1f) / 2f);
+            Color animatedColor = Color.Lerp(Color.white, new Color(1f, 0.5f, 0.5f), (Mathf.Sin((float)_animationTimer) + 1f) / 2f);
 
             GUIStyle animatedButtonStyle = new GUIStyle(GetButtonStyle())
             {
@@ -255,7 +256,7 @@ namespace TelePresent.SoundShapes
                 active = { textColor = animatedColor }
             };
 
-            var content = discordIcon != null ? new GUIContent($"  Join Discord", discordIcon) : new GUIContent($"  Join Discord");
+            var content = _discordIcon ? new GUIContent($"  Join Discord", _discordIcon) : new GUIContent($"  Join Discord");
             if (GUILayout.Button(content, animatedButtonStyle, GUILayout.Width(350), GUILayout.Height(45)))
             {
                 Application.OpenURL("https://discord.gg/DCWnPkRmTf");
@@ -272,24 +273,24 @@ namespace TelePresent.SoundShapes
             GUILayout.BeginVertical("box");
             GUILayout.Label("News", GetSectionHeaderStyle());
 
-            if (isLoadingNews)
+            if (_isLoadingNews)
             {
                 GUILayout.Label("Loading news...", GetLoadingStyle());
             }
-            else if (!string.IsNullOrEmpty(newsLoadError))
+            else if (!string.IsNullOrEmpty(_newsLoadError))
             {
-                GUILayout.Label(newsLoadError, GetErrorStyle());
+                GUILayout.Label(_newsLoadError, GetErrorStyle());
             }
-            else if (newsItems.Count == 0)
+            else if (_newsItems.Count == 0)
             {
                 GUILayout.Label("No news available.", GetBodyStyle());
             }
             else
             {
-                // Begin scroll view
-                newsScrollPos = GUILayout.BeginScrollView(newsScrollPos, GUILayout.Height(200));
+                // Begin the scroll view
+                _newsScrollPos = GUILayout.BeginScrollView(_newsScrollPos, GUILayout.Height(200));
 
-                foreach (var news in newsItems)
+                foreach (var news in _newsItems)
                 {
                     GUILayout.BeginVertical("box");
 

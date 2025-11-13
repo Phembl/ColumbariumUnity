@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 5890cef7dd7f91643bc987a188307343
+guid: 2d49efeb09aa84f299f8367ccb3baaee
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
@@ -12,7 +12,7 @@ MonoImporter:
 AssetOrigin:
   serializedVersion: 1
   productId: 312038
-  packageName: Sound Shapes - Dynamic Audio Areas
-  packageVersion: 1.0
+  packageName: 'Sound Shapes : Dynamic Audio Areas'
+  packageVersion: 1.3
   assetPath: Assets/TelePresent/Sound Shapes/Scripts/AudioZoneMultiEmitterHandler.cs
-  uploadId: 743890
+  uploadId: 779837

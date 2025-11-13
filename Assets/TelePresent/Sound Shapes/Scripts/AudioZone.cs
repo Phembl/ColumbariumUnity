@@ -1,714 +1,786 @@
 /*******************************************************
-Product - Sound Shapes
-  Publisher - TelePresent Games
-              http://TelePresentGames.dk
-  Author    - Martin Hansen
-  Created   - 2025
-  (c) 2025 Martin Hansen. All rights reserved.
-/*******************************************************/
+Product   - Sound Shapes
+Publisher - TelePresent Games
+            http://TelePresentGames.dk
+Author    - Martin Hansen
+Created   - 2025
+(c) 2025 Martin Hansen. All rights reserved.
+*******************************************************/
 
-using UnityEngine;
+using System;
 using System.Collections.Generic;
-using TMPro;
-
+using UnityEngine;
+using UnityEngine.Rendering;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
 namespace TelePresent.SoundShapes
 {
-
     [ExecuteInEditMode]
     public class AudioZone : MonoBehaviour
     {
-        public enum ZoneMode { Shape, Mesh, MultiEmitter }
+        public enum ZoneMode     { Shape, Mesh, MultiEmitter }
+        public enum TrackingMode { Tag,   Object }
+
+        #region Inspector Fields ---------------------------------------------------------------
 
         [Header("Zone Mode")]
-        [Tooltip("Mode for defining the audio zone.")]
         public ZoneMode mode = ZoneMode.Shape;
-        [HideInInspector]
-        public bool shouldTrack = true;
-        [Tooltip("Anchor points defining the audio zone shape (in local space).")]
-        public List<Vector3> points = new List<Vector3>();
-        [Tooltip("If true, the shape will be closed.")]
-        public bool closedShape = true;
-        [Tooltip("Toggle freehand drawing mode in the Scene view.")]
-        public bool freehandMode = false;
 
-        [Tooltip("List of MeshFilters whose meshes define the audio zone.")]
-        public List<MeshFilter> meshFilters = new List<MeshFilter>();
-        [Tooltip("Offset to apply to the AudioSource in Mesh mode.")]
+        public event Action<bool> OnTrackingStateChanged;
+        private bool _wasInRange;
+
+        public List<Vector3> points = new();
+
+        public bool closedShape = true;
+
+        public bool freehandMode;
+
+        public List<MeshFilter> meshFilters = new();
+
+        public bool isInRange;
+
         public Vector3 meshAudioOffset = Vector3.zero;
 
-        [Header("Cached Mesh Data (for non-readable meshes)")]
-        [Tooltip("Pre-cached vertex and triangle data for each mesh (to avoid runtime read/write errors).")]
-        public List<SoundShapes_CachedMeshData> cachedMeshDataList = new List<SoundShapes_CachedMeshData>();
+        public List<SoundShapes_CachedMeshData> cachedMeshDataList = new();
 
-        [Tooltip("Locations of the multi-emitter points (in local space).")]
-        public List<Vector3> multiEmitterPoints = new List<Vector3>();
+        public List<Vector3> multiEmitterPoints = new();
 
-        [Tooltip("AudioSource that will follow along the zone.")]
         public AudioSource audioSource;
-        [Tooltip("Override the AudioSource maxDistance for the trigger perimeter. If 0 or less, audioSource.maxDistance is used.")]
-        public float triggerDistanceOverride = 0f;
-        [Tooltip("Flip the trigger offset (multiplied by -1).")]
-        public bool flipTriggerDistance = false;
-        [Tooltip("Allow dual audio sources when the player is between two points.")]
-        public bool enableDualAudio = false;
+
+        public GameObject positionTarget;
+
+        public GameObject soundShapeTracker;
+
+        public bool requireAudioSourceComponent = true;
+
+        public float triggerDistanceOverride;
+
+        public bool flipTriggerDistance;
+
+        public bool enableDualAudio;
+
+        #region Occlusion ----------------------------------------------------------------------
 
         [Header("Occlusion Settings")]
-        [Tooltip("Enable occlusion effect for the audio zone.")]
-        public bool enableOcclusion = false;
-        [Tooltip("Layer mask for occluding objects.")]
+        public bool   enableOcclusion;
         public LayerMask occlusionLayer = 1 << 0;
-        [Tooltip("Volume multiplier when occluded (0 to 1).")]
-        public float occlusionVolumeMultiplier = 0.5f;
-        [Tooltip("Low pass filter cutoff frequency when occluded.")]
-        public float occlusionLowPassCutoff = 7000;
-        [Tooltip("Default low pass filter cutoff frequency.")]
-        public float defaultLowPassCutoff = 22000f;
-        [Tooltip("How many raycasts to distribute along the occlusion sampling circle.")]
-        public int occlusionResolution = 4;
-        [Tooltip("Distance between occlusion raycasts on the sampling circle.")]
-        public float occlusionSampleRadius = 0.5f;
+        public bool   occlusion2DMode;
+        [Range(0f,180f)]
+        public float  occlusion2DSpreadDegrees = 30f;
+        [Range(0f, 1f)] public float occlusionVolumeMultiplier = 0.5f;
+        public float occlusionLowPassCutoff = 7000f;
+        public float defaultLowPassCutoff   = 22000f;
+        public int   occlusionResolution    = 4;
+        public float occlusionSampleRadius  = 0.5f;
 
-        public enum TrackingMode { Tag, Object }
+        #endregion
+
+        #region Tracking -----------------------------------------------------------------------
 
         [Header("Tracking Settings")]
-        [Tooltip("Determines whether the zone tracks by tag or by specific object.")]
         public TrackingMode trackingMode = TrackingMode.Tag;
-        [Tooltip("Tag to track when in Tag mode.")]
-        public string trackingTag = "Player";
-        [Tooltip("Specific object to track when in Object mode.")]
+        public string   trackingTag     = "Player";
         public Transform trackingObject;
 
+        #endregion
+
         [Header("Debug & Preview")]
-        [Tooltip("Use the Scene view camera as the target in editor preview.")]
-        public bool editorPreview = false;
-        [Tooltip("Show debug visualizations in Scene and Game views.")]
-        public bool debugMode = false;
+        public bool editorPreview;
+        public bool debugMode;
 
-        public bool disabledAudioSourceForMultiEmitter;
+        [HideInInspector] public bool  shouldTrack = true;
+        [HideInInspector] public bool  disabledAudioSourceForMultiEmitter;
+        [HideInInspector] public float occlusionRatio;
 
-        bool showTriggerSettingsFoldout;
+        #endregion
+        /* ============================================================================ */
 
-        [HideInInspector]
-        public Transform cachedTransform;
+        #region Runtime Caches & Helpers --------------------------------------------------------
 
-        public AudioZoneDualAudio dualAudioHandler;
-        public AudioZoneMultiEmitterHandler multiEmitterHandler;
+        public  Transform cachedTransform;
 
-        static Material _lineMaterial;
+        private float   _triggerDistance;
+        private float   _triggerDistSqr;
+        public  Vector3 currentTargetPosition;
 
-        // Flag to store if the main AudioListener was originally enabled.
-        private bool mainListenerWasEnabled = false;
+        private GameObject _prevSoundShapeTracker;
+        private GameObject _targetObj;
 
-        // Trigger-based detection field.
-        private Transform playerTransform;
+        private bool _isMultiEmitter;
+        private bool _editingPreview;
 
-        public Vector3 currentTargetPosition;
+        private static Material lineMaterial;
+        private static readonly int Cull = Shader.PropertyToID("_Cull");
+        private static readonly int DstBlend = Shader.PropertyToID("_DstBlend");
+        private static readonly int SrcBlend = Shader.PropertyToID("_SrcBlend");
+        private static readonly int ZWrite = Shader.PropertyToID("_ZWrite");
 
-        void Awake()
+        // Re‑used candidate buffers (cleared each frame)
+        private readonly List<Candidate> _meshCandidates  = new(16);
+        private readonly List<Candidate> _dualCandidates  = new(8);
+
+        // Helper components (always kept valid by EnsureHandlers)
+        public  AudioZoneDualAudio           DualAudioHandler;
+        public  AudioZoneMultiEmitterHandler MultiEmitterHandler;
+
+        #endregion
+        /* ============================================================================ */
+
+        #region Unity Lifecycle ----------------------------------------------------------------
+
+        private void Awake()
         {
-            cachedTransform = transform;
-            dualAudioHandler = new AudioZoneDualAudio(this);
-            if (multiEmitterHandler == null)
-                multiEmitterHandler = new AudioZoneMultiEmitterHandler(this);
+            cachedTransform      = transform;
+            EnsureHandlers();
+            _prevSoundShapeTracker = soundShapeTracker;
+        }
+        
+        
+#if UNITY_EDITOR
+        private void OnEnable()
+        {
+            EditorApplication.update               += EditorUpdate;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        }
+
+        private void OnDisable()
+        {
+            EditorApplication.update               -= EditorUpdate;
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            StopPreview();
+        }
+#endif
+
+        private void Start()
+        {
+            if (audioSource && !audioSource.GetComponent<AudioLowPassFilter>())
+            {
+                var lpf = audioSource.gameObject.AddComponent<AudioLowPassFilter>();
+                lpf.cutoffFrequency = defaultLowPassCutoff;
+            }
         }
 
 #if UNITY_EDITOR
         private void OnValidate()
         {
             if (!EditorApplication.isPlaying && !EditorApplication.isPlayingOrWillChangePlaymode)
-            {
                 AudioZoneGeometry.GenerateMeshData(this);
+
+            if (!soundShapeTracker && audioSource)
+                soundShapeTracker = audioSource.gameObject;
+
+            if (soundShapeTracker != _prevSoundShapeTracker)
+            {
+                if (soundShapeTracker)
+                {
+                    positionTarget = soundShapeTracker;
+                    audioSource    = soundShapeTracker.GetComponent<AudioSource>();
+                }
+                else
+                {
+                    positionTarget = null;
+                    audioSource    = null;
+                }
+                _prevSoundShapeTracker = soundShapeTracker;
             }
         }
-#endif
 
-
-        void Start()
+        private void EditorUpdate()
         {
-            if (audioSource != null && audioSource.GetComponent<AudioLowPassFilter>() == null)
+            if (!Application.isPlaying && editorPreview && audioSource)
             {
-                audioSource.gameObject.AddComponent<AudioLowPassFilter>();
-                audioSource.GetComponent<AudioLowPassFilter>().cutoffFrequency = defaultLowPassCutoff;
-                AudioZoneGeometry.GenerateMeshData(this);
-            }
-        }
-
-#if UNITY_EDITOR
-        void OnEnable()
-        {
-            if (dualAudioHandler == null)
-                dualAudioHandler = new AudioZoneDualAudio(this);
-            if (multiEmitterHandler == null)
-                multiEmitterHandler = new AudioZoneMultiEmitterHandler(this);
-            EditorApplication.update += EditorUpdate;
-            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
-        }
-
-        void OnDisable()
-        {
-            EditorApplication.update -= EditorUpdate;
-            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
-            StopPreview();
-        }
-
-        void EditorUpdate()
-        {
-            if (!Application.isPlaying && editorPreview)
-            {
-                if (audioSource == null)
-                    return;
-                Update();
-
-                // Update the single scene audio listener.
+                Update();                                   // reuse runtime logic
                 SceneAudioListenerManager.UpdateListener();
-
-                // Ensure the audio source has a low pass filter.
-                if (audioSource.GetComponent<AudioLowPassFilter>() == null)
-                {
-                    audioSource.gameObject.AddComponent<AudioLowPassFilter>();
-                    audioSource.GetComponent<AudioLowPassFilter>().cutoffFrequency = defaultLowPassCutoff;
-                    defaultLowPassCutoff = audioSource.GetComponent<AudioLowPassFilter>().cutoffFrequency;
-                }
-
-                // Disable the main camera's AudioListener if it was enabled.
-                if (Camera.main != null)
-                {
-                    AudioListener mainListener = Camera.main.GetComponent<AudioListener>();
-                    if (mainListener != null && mainListener.enabled)
-                    {
-                        mainListenerWasEnabled = true;
-                        mainListener.enabled = false;
-                    }
-                }
-
+                EnsureLowPass();
+                DisableMainListener();
                 SceneView.RepaintAll();
             }
         }
 
-        /// <summary>
-        /// Called when the play mode state changes. Disables editor preview when exiting edit mode.
-        /// </summary>
-        /// <param name="state">The new play mode state.</param>
         private void OnPlayModeStateChanged(PlayModeStateChange state)
         {
-            if (state == PlayModeStateChange.ExitingEditMode)
+            if (state == PlayModeStateChange.ExitingEditMode && editorPreview)
+                StopPreview();
+        }
+
+        private void EnsureLowPass()
+        {
+            if (audioSource && !audioSource.GetComponent<AudioLowPassFilter>())
             {
-                if (editorPreview)
-                {
-                    StopPreview();
-                }
+                var lpf = audioSource.gameObject.AddComponent<AudioLowPassFilter>();
+                lpf.cutoffFrequency = defaultLowPassCutoff;
+            }
+        }
+
+        private void DisableMainListener()
+        {
+            if (!Camera.main) return;
+            var mainListener = Camera.main.GetComponent<AudioListener>();
+            if (mainListener && mainListener.enabled)
+            {
+                mainListener.enabled = false;
+                _editingPreview      = true;
             }
         }
 #endif
+        #endregion
+        /* ============================================================================ */
 
-        // A helper class to store candidate info.
-        private class Candidate
+        #region Main Update Loop ---------------------------------------------------------------
+
+        private void Update()
         {
-            public Vector3 position;
-            public float distSqr;
-            public int segmentIndex;
+            EnsureHandlers();                 // make sure helpers live after reloads
 
-            public Candidate(Vector3 pos, float dist, int seg)
-            {
-                position = pos;
-                distSqr = dist;
-                segmentIndex = seg;
-            }
-        }
-
-        void Update()
-        {
-            if (audioSource == null || !shouldTrack)
-                return;
-
+#if UNITY_EDITOR
             if (!Application.isPlaying && !editorPreview)
                 return;
-
-            if (Application.isPlaying && !audioSource.isPlaying)
-                return;
-
-            GameObject targetObj = null;
-#if UNITY_EDITOR
-            if (editorPreview && !Application.isPlaying && SceneView.lastActiveSceneView != null && SceneView.lastActiveSceneView.camera != null)
-            {
-                currentTargetPosition = SceneView.lastActiveSceneView.camera.transform.position;
-            }
-            else
-            {
-                if (trackingMode == TrackingMode.Tag)
-                    targetObj = GetClosestObjectByTag(trackingTag);
-                else if (trackingMode == TrackingMode.Object && trackingObject != null)
-                    targetObj = trackingObject.gameObject;
-                if (targetObj == null)
-                    return;
-                currentTargetPosition = targetObj.transform.position;
-            }
-#else
-    if (trackingMode == TrackingMode.Tag)
-        targetObj = GetClosestObjectByTag(trackingTag);
-    else if (trackingMode == TrackingMode.Object && trackingObject != null)
-        targetObj = trackingObject.gameObject;
-    if (targetObj == null)
-        return;
-    currentTargetPosition = targetObj.transform.position;
 #endif
 
-            // MultiEmitter mode handling.
-            if (mode == ZoneMode.MultiEmitter)
-            {
-                if (!Application.isPlaying) // Editor preview mode.
-                {
-                    audioSource.Stop();
-                    audioSource.enabled = false;
-                    disabledAudioSourceForMultiEmitter = true;
-                    dualAudioHandler.StopAndCleanup();
-                    multiEmitterHandler.UpdateMultiEmitterLogic();
-                    return;
-                }
-                else // Play mode.
-                {
+            isInRange = false;
 
-                    multiEmitterHandler.UpdateMultiEmitterLogic();
-                    return;
-                }
+            /* ─── 1. tracker override sync ────────────────────────────────────── */
+            if (soundShapeTracker != _prevSoundShapeTracker)
+                SyncTrackerReference();
+
+            _isMultiEmitter = mode == ZoneMode.MultiEmitter;
+            if (!_isMultiEmitter && (!positionTarget || !shouldTrack))
+                return;
+
+            if (!_isMultiEmitter && audioSource && Application.isPlaying && !audioSource.isPlaying)
+                return;
+
+            /* ─── 2. listener position ───────────────────────────────────────── */
+#if UNITY_EDITOR
+            if (editorPreview && !Application.isPlaying &&
+                SceneView.lastActiveSceneView?.camera)
+            {
+                currentTargetPosition =
+                    SceneView.lastActiveSceneView.camera.transform.position;
             }
             else
+#endif
             {
-
-                // Ensure the main audio source has non-zero volume.
-                if (audioSource != null && audioSource.volume == 0f)
-                    audioSource.volume = 1.0f;
+                if (trackingMode == TrackingMode.Tag)
+                {
+                    _targetObj = GetClosestObjectByTag(trackingTag);
+                    if (!_targetObj) return;
+                    currentTargetPosition = _targetObj.transform.position;
+                }
+                else if (trackingObject)
+                {
+                    currentTargetPosition = trackingObject.position;
+                }
+                else return;
             }
 
-
-
-            float triggerDistance = (triggerDistanceOverride > 0f) ? triggerDistanceOverride : audioSource.maxDistance;
-
-            Vector3 primaryAudioPosition = Vector3.zero;
-            bool isInRange = false;
-
-            // ZoneMode.Shape logic.
-            if (mode == ZoneMode.Shape && points.Count >= 1)
+            /* ─── 3. mode diverge ─────────────────────────────────────────────── */
+            if (_isMultiEmitter)
             {
-                if (closedShape && AudioZoneGeometry.IsPointInsideZone(currentTargetPosition, points, transform))
-                {
-                    primaryAudioPosition = AudioZoneGeometry.GetConstrainedPosition(currentTargetPosition, points, closedShape, transform);
-                    isInRange = true;
-                }
+                if (!Application.isPlaying)
+                    EnterEditorMultiEmitter();
                 else
-                {
-                    Vector3 closestPerimeterPoint = AudioZoneGeometry.GetClosestPointOnPerimeter(currentTargetPosition, points, closedShape, transform);
-                    if (Vector3.Distance(currentTargetPosition, closestPerimeterPoint) <= triggerDistance)
-                    {
-                        primaryAudioPosition = closestPerimeterPoint;
-                        isInRange = true;
-                    }
-                }
+                    MultiEmitterHandler.UpdateMultiEmitterLogic();
+                return;
             }
-            // ZoneMode.Mesh logic.
-            else if (mode == ZoneMode.Mesh && meshFilters != null && meshFilters.Count > 0)
+
+            /* ─── 4. ensure audible & trigger radius ─────────────────────────── */
+            if (audioSource && Mathf.Approximately(audioSource.volume, 0f))
+                audioSource.volume = 1f;
+
+            _triggerDistance = triggerDistanceOverride > 0f
+                ? triggerDistanceOverride
+                : (audioSource ? audioSource.maxDistance : 0f);
+            _triggerDistSqr  = _triggerDistance * _triggerDistance;
+
+            /* ─── 5. zone‑specific candidate position ────────────────────────── */
+            Vector3 primaryPos = positionTarget ? positionTarget.transform.position
+                                                : transform.position;
+
+            switch (mode)
             {
-                List<Candidate> candidates = new List<Candidate>();
-                float triggerDistSqr = triggerDistance * triggerDistance;
-
-                foreach (MeshFilter mf in meshFilters)
-                {
-                    if (mf == null || mf.sharedMesh == null)
-                        continue;
-
-                    SoundShapes_CachedMeshData cachedData = null;
-                    if (cachedMeshDataList == null)
-                        AudioZoneGeometry.GenerateMeshData(this);
-                    else
-                        cachedData = cachedMeshDataList.Find(x => x.meshReference == mf.sharedMesh);
-
-                    Vector3[] vertices;
-                    int[] triangles;
-                    if (cachedData != null)
-                    {
-                        vertices = cachedData.vertices;
-                        triangles = cachedData.triangles;
-                    }
-                    else
-                    {
-                        Mesh mesh = mf.sharedMesh;
-                        vertices = mesh.vertices;
-                        triangles = mesh.triangles;
-                    }
-
-                    Transform mfT = mf.transform;
-                    Vector3[] worldVertices = new Vector3[vertices.Length];
-                    for (int i = 0; i < vertices.Length; i++)
-                        worldVertices[i] = mfT.TransformPoint(vertices[i]);
-
-                    for (int i = 0; i < triangles.Length; i += 3)
-                    {
-                        Vector3 a = worldVertices[triangles[i]];
-                        Vector3 b = worldVertices[triangles[i + 1]];
-                        Vector3 c = worldVertices[triangles[i + 2]];
-
-                        Vector3 candidatePoint = AudioZoneGeometry.ClosestPointOnTriangle(a, b, c, currentTargetPosition);
-                        float distSqr = (currentTargetPosition - candidatePoint).sqrMagnitude;
-                        if (distSqr <= triggerDistSqr)
-                        {
-                            candidates.Add(new Candidate(candidatePoint, distSqr, mf.GetInstanceID()));
-                        }
-                    }
-                }
-
-                if (candidates.Count > 0)
-                {
-                    candidates.Sort((a, b) => a.distSqr.CompareTo(b.distSqr));
-                    primaryAudioPosition = candidates[0].position + meshAudioOffset;
-                    isInRange = true;
-                }
+                case ZoneMode.Shape:
+                    ProcessShapeMode(ref primaryPos);
+                    break;
+                case ZoneMode.Mesh:
+                    ProcessMeshMode(ref primaryPos);
+                    break;
             }
 
+            /* ─── 6. apply / dual‑audio / occlusion ──────────────────────────── */
             if (isInRange)
             {
                 if (enableDualAudio && mode == ZoneMode.Shape && points.Count >= 2)
-                {
-                    ProcessDualAudioForShape(currentTargetPosition, triggerDistance);
-                }
-                else if (enableDualAudio && mode == ZoneMode.Mesh && meshFilters != null && meshFilters.Count > 0)
-                {
-                    ProcessDualAudioForMesh(currentTargetPosition, triggerDistance);
-                }
+                    ProcessDualAudioForShape();
+                else if (enableDualAudio && mode == ZoneMode.Mesh && meshFilters.Count > 0)
+                    ProcessDualAudioForMesh();
                 else
-                {
-                    audioSource.transform.position = primaryAudioPosition;
-                    dualAudioHandler.CleanupSecondaryAudio();
-                }
+                    ApplyPrimaryPosition(primaryPos);
 
                 if (enableOcclusion)
-                {
-                    AudioZoneOcclusion.UpdateOcclusion(currentTargetPosition, audioSource.transform.position, audioSource, this);
-                    if (dualAudioHandler.secondaryAudioSource != null)
-                    {
-                        AudioZoneOcclusion.UpdateOcclusion(currentTargetPosition, dualAudioHandler.secondaryAudioSource.transform.position, dualAudioHandler.secondaryAudioSource, this);
-                    }
-                }
-                else if (dualAudioHandler.secondaryAudioSource != null && !enableOcclusion)
-                {
-                    dualAudioHandler.secondaryAudioSource.volume = dualAudioHandler.baseSecondaryVolume * dualAudioHandler.secondaryFadeFactor;
-                }
+                    UpdateOcclusionForAll();
+                else
+                    DualAudioHandler?.ApplyFallbackSecondaryVolume();
             }
             else
             {
-                dualAudioHandler.CleanupSecondaryAudio();
+                DualAudioHandler?.CleanupSecondaryAudio();
+            }
+
+            /* ─── 7. range‑changed event ─────────────────────────────────────── */
+            if (isInRange != _wasInRange)
+            {
+                OnTrackingStateChanged?.Invoke(isInRange);
+            }
+            _wasInRange = isInRange;
+        }
+        #endregion
+        /* ============================================================================ */
+
+        #region Initialiser/Utility ------------------------------------------------------------
+
+        /// <summary>Guarantees helper instances exist after a domain reload.</summary>
+        private void EnsureHandlers()
+        {
+            DualAudioHandler    ??= new AudioZoneDualAudio(this);
+            MultiEmitterHandler ??= new AudioZoneMultiEmitterHandler(this);
+        }
+
+        private void SyncTrackerReference()
+        {
+            if (soundShapeTracker)
+            {
+                positionTarget = soundShapeTracker;
+                audioSource    = soundShapeTracker.GetComponent<AudioSource>();
+            }
+            else
+            {
+                positionTarget = null;
+                audioSource    = null;
+            }
+            _prevSoundShapeTracker = soundShapeTracker;
+        }
+        #endregion
+        /* ============================================================================ */
+
+        #region Zone Processing ---------------------------------------------------------------
+
+        private void ProcessShapeMode(ref Vector3 primaryPos)
+        {
+            if (closedShape && AudioZoneGeometry.IsPointInsideZone(
+                    currentTargetPosition, points, cachedTransform))
+            {
+                primaryPos = AudioZoneGeometry.GetConstrainedPosition(
+                    currentTargetPosition, points, closedShape, cachedTransform);
+                isInRange  = true;
+                return;
+            }
+
+            Vector3 nearest = AudioZoneGeometry.GetClosestPointOnPerimeter(
+                currentTargetPosition, points, closedShape, cachedTransform);
+
+            if ((nearest - currentTargetPosition).sqrMagnitude <= _triggerDistSqr)
+            {
+                primaryPos = nearest;
+                isInRange  = true;
             }
         }
 
-
-
-        private void ProcessDualAudioForShape(Vector3 currentTargetPosition, float triggerDistance)
+        private void ProcessMeshMode(ref Vector3 primaryPos)
         {
-            float triggerDistSqr = triggerDistance * triggerDistance;
-            List<Candidate> candidates = new List<Candidate>();
+            _meshCandidates.Clear();
 
-            // Iterate over segments between consecutive points.
-            for (int i = 0; i < points.Count - 1; i++)
+            foreach (var mf in meshFilters)
             {
-                Vector3 p1 = transform.TransformPoint(points[i]);
-                Vector3 p2 = transform.TransformPoint(points[i + 1]);
-                Vector3 proj = AudioZoneGeometry.ProjectPointOnLineSegment(p1, p2, currentTargetPosition);
-                float distSqr = (currentTargetPosition - proj).sqrMagnitude;
-                if (distSqr <= triggerDistSqr)
-                    candidates.Add(new Candidate(proj, distSqr, i));
-            }
-            // For closed shapes, add the segment from the last point to the first.
-            if (closedShape && points.Count > 2)
-            {
-                int i = points.Count - 1;
-                Vector3 p1 = transform.TransformPoint(points[i]);
-                Vector3 p2 = transform.TransformPoint(points[0]);
-                Vector3 proj = AudioZoneGeometry.ProjectPointOnLineSegment(p1, p2, currentTargetPosition);
-                float distSqr = (currentTargetPosition - proj).sqrMagnitude;
-                if (distSqr <= triggerDistSqr)
-                    candidates.Add(new Candidate(proj, distSqr, i));
-            }
+                if (!mf || !mf.sharedMesh) continue;
 
-            if (candidates.Count >= 2)
-            {
-                candidates.Sort((a, b) => a.distSqr.CompareTo(b.distSqr));
-                bool validPairFound = false;
-                Candidate primaryCandidate = null;
-                Candidate secondaryCandidate = null;
+                var cache = cachedMeshDataList.Find(x => x.meshReference == mf.sharedMesh);
+                var verts = cache != null ? cache.vertices   : mf.sharedMesh.vertices;
+                var tris  = cache != null ? cache.triangles  : mf.sharedMesh.triangles;
 
-                for (int m = 0; m < candidates.Count; m++)
+                var worldVerts = new Vector3[verts.Length];
+                for (int i = 0; i < verts.Length; i++)
+                    worldVerts[i] = mf.transform.TransformPoint(verts[i]);
+
+                for (int i = 0; i < tris.Length; i += 3)
                 {
-                    for (int n = m + 1; n < candidates.Count; n++)
-                    {
-                        // Skip candidates if their positions are nearly identical.
-                        if (Vector3.Distance(candidates[m].position, candidates[n].position) < 0.01f)
-                            continue;
+                    Vector3 cand = AudioZoneGeometry.ClosestPointOnTriangle(
+                        worldVerts[tris[i]],
+                        worldVerts[tris[i + 1]],
+                        worldVerts[tris[i + 2]],
+                        currentTargetPosition);
 
-                        Vector3 v1 = candidates[m].position - currentTargetPosition;
-                        Vector3 v2 = candidates[n].position - currentTargetPosition;
-                        float angle = Vector3.Angle(v1, v2);
-                        if (angle > 70f)
-                        {
-                            primaryCandidate = candidates[m];
-                            secondaryCandidate = candidates[n];
-                            validPairFound = true;
-                            break;
-                        }
-                    }
-                    if (validPairFound)
+                    float dSqr = (currentTargetPosition - cand).sqrMagnitude;
+                    if (dSqr <= _triggerDistSqr)
+                        _meshCandidates.Add(new Candidate(cand, dSqr));
+                }
+            }
+
+            if (_meshCandidates.Count > 0)
+            {
+                _meshCandidates.Sort((a, b) => a.DistSqr.CompareTo(b.DistSqr));
+                primaryPos = _meshCandidates[0].Position + meshAudioOffset;
+                isInRange  = true;
+            }
+        }
+
+        #endregion
+        /* ============================================================================ */
+
+        #region Dual Audio Helpers -------------------------------------------------------------
+
+        private class Candidate
+        {
+            public readonly Vector3 Position;
+            public readonly float   DistSqr;
+            public readonly int     SegmentIndex;
+            public Candidate(Vector3 pos, float d)
+            {
+                Position = pos;  DistSqr = d;
+            }
+        }
+
+        private void ProcessDualAudioForShape()
+        {
+            _dualCandidates.Clear();
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                int next = (i + 1) % points.Count;
+                if (!closedShape && next == 0) break;
+
+                Vector3 p1   = cachedTransform.TransformPoint(points[i]);
+                Vector3 p2   = cachedTransform.TransformPoint(points[next]);
+                Vector3 proj = AudioZoneGeometry.ProjectPointOnLineSegment(
+                                    p1, p2, currentTargetPosition);
+
+                float dSqr = (currentTargetPosition - proj).sqrMagnitude;
+                if (dSqr <= _triggerDistSqr)
+                    _dualCandidates.Add(new Candidate(proj, dSqr));
+            }
+
+            ApplyDualCandidates();
+        }
+
+        private void ProcessDualAudioForMesh()
+        {
+            _dualCandidates.Clear();
+
+            foreach (var mf in meshFilters)
+            {
+                if (!mf || !mf.sharedMesh) continue;
+
+                var cache = cachedMeshDataList.Find(x => x.meshReference == mf.sharedMesh);
+                var verts = cache != null ? cache.vertices : mf.sharedMesh.vertices;
+                var tris  = cache != null ? cache.triangles : mf.sharedMesh.triangles;
+
+                var worldVerts = new Vector3[verts.Length];
+                for (int i = 0; i < verts.Length; i++)
+                    worldVerts[i] = mf.transform.TransformPoint(verts[i]);
+
+                for (int i = 0; i < tris.Length; i += 3)
+                {
+                    Vector3 cand = AudioZoneGeometry.ClosestPointOnTriangle(
+                        worldVerts[tris[i]],
+                        worldVerts[tris[i + 1]],
+                        worldVerts[tris[i + 2]],
+                        currentTargetPosition);
+
+                    float dSqr = (currentTargetPosition - cand).sqrMagnitude;
+                    if (dSqr <= _triggerDistSqr)
+                        _dualCandidates.Add(new Candidate(
+                            cand + meshAudioOffset, dSqr));
+                }
+            }
+
+            ApplyDualCandidates(isMesh: true);
+        }
+
+        private void ApplyDualCandidates(bool isMesh = false)
+        {
+            if (_dualCandidates.Count < 2)
+            {
+                if (_dualCandidates.Count == 1)
+                    SingleDualCandidate(_dualCandidates[0]);
+                else
+                    DualAudioHandler?.CleanupSecondaryAudio();
+                return;
+            }
+
+            _dualCandidates.Sort((a, b) => a.DistSqr.CompareTo(b.DistSqr));
+
+            Candidate primary   = null;
+            Candidate secondary = null;
+            bool      found     = false;
+
+            for (int m = 0; m < _dualCandidates.Count && !found; m++)
+            {
+                for (int n = m + 1; n < _dualCandidates.Count; n++)
+                {
+                    if ((_dualCandidates[m].Position -
+                         _dualCandidates[n].Position).sqrMagnitude < 0.0001f)
+                        continue;
+
+                    float angle = Vector3.Angle(
+                        _dualCandidates[m].Position - currentTargetPosition,
+                        _dualCandidates[n].Position - currentTargetPosition);
+
+                    if (angle > 70f)
+                    {
+                        primary   = _dualCandidates[m];
+                        secondary = _dualCandidates[n];
+                        found     = true;
                         break;
-                }
-
-                if (validPairFound)
-                {
-                    audioSource.transform.position = primaryCandidate.position;
-                    if (!dualAudioHandler.secondaryAudioSource)
-                        dualAudioHandler.HandleSecondaryAudio();
-                    dualAudioHandler.secondaryAudioSource.transform.position = secondaryCandidate.position;
-                }
-                else
-                {
-                    audioSource.transform.position = candidates[0].position;
-                    dualAudioHandler.CleanupSecondaryAudio();
-                }
-            }
-            else if (candidates.Count == 1)
-            {
-                audioSource.transform.position = candidates[0].position;
-                dualAudioHandler.CleanupSecondaryAudio();
-            }
-            else
-            {
-                dualAudioHandler.CleanupSecondaryAudio();
-            }
-        }
-
-        private void ProcessDualAudioForMesh(Vector3 currentTargetPosition, float triggerDistance)
-        {
-            List<Candidate> candidates = new List<Candidate>();
-            float triggerDistSqr = triggerDistance * triggerDistance;
-
-            foreach (MeshFilter mf in meshFilters)
-            {
-                if (mf == null || mf.sharedMesh == null)
-                    continue;
-
-                SoundShapes_CachedMeshData cachedData = null;
-                if (cachedMeshDataList != null)
-                    cachedData = cachedMeshDataList.Find(x => x.meshReference == mf.sharedMesh);
-
-                Vector3[] vertices;
-                int[] triangles;
-                if (cachedData != null)
-                {
-                    vertices = cachedData.vertices;
-                    triangles = cachedData.triangles;
-                }
-                else
-                {
-                    Mesh mesh = mf.sharedMesh;
-                    vertices = mesh.vertices;
-                    triangles = mesh.triangles;
-                }
-
-                Transform mfT = mf.transform;
-                Vector3[] worldVertices = new Vector3[vertices.Length];
-                for (int i = 0; i < vertices.Length; i++)
-                    worldVertices[i] = mfT.TransformPoint(vertices[i]);
-
-                for (int i = 0; i < triangles.Length; i += 3)
-                {
-                    Vector3 a = worldVertices[triangles[i]];
-                    Vector3 b = worldVertices[triangles[i + 1]];
-                    Vector3 c = worldVertices[triangles[i + 2]];
-
-                    Vector3 candidatePoint = AudioZoneGeometry.ClosestPointOnTriangle(a, b, c, currentTargetPosition);
-                    float distSqr = (currentTargetPosition - candidatePoint).sqrMagnitude;
-                    if (distSqr <= triggerDistSqr)
-                    {
-                        candidates.Add(new Candidate(candidatePoint, distSqr, mf.GetInstanceID()));
                     }
                 }
             }
 
-            if (candidates.Count >= 2)
+            if (found)
             {
-                candidates.Sort((a, b) => a.distSqr.CompareTo(b.distSqr));
-                bool validPairFound = false;
-                Candidate primaryCandidate = null, secondaryCandidate = null;
-
-                for (int m = 0; m < candidates.Count; m++)
+                if (isMesh)
                 {
-                    for (int n = m + 1; n < candidates.Count; n++)
-                    {
-                        if (Vector3.Distance(candidates[m].position, candidates[n].position) < 0.01f)
-                            continue;
-
-                        Vector3 v1 = candidates[m].position - currentTargetPosition;
-                        Vector3 v2 = candidates[n].position - currentTargetPosition;
-                        float angle = Vector3.Angle(v1, v2);
-                        if (angle > 70f)
-                        {
-                            primaryCandidate = candidates[m];
-                            secondaryCandidate = candidates[n];
-                            validPairFound = true;
-                            break;
-                        }
-                    }
-                    if (validPairFound)
-                        break;
+                    if (positionTarget) positionTarget.transform.position = primary.Position;
+                    if (audioSource)    audioSource.transform.position    = primary.Position;
+                }
+                else if (audioSource)
+                {
+                    audioSource.transform.position = primary.Position;
                 }
 
-                if (validPairFound)
-                {
-                    audioSource.transform.position = primaryCandidate.position + meshAudioOffset;
-                    if (!dualAudioHandler.secondaryAudioSource)
-                        dualAudioHandler.HandleSecondaryAudio();
-                    dualAudioHandler.secondaryAudioSource.transform.position = secondaryCandidate.position + meshAudioOffset;
-                }
-                else
-                {
-                    // Fallback to single audio if no valid pair is found.
-                    audioSource.transform.position = candidates[0].position + meshAudioOffset;
-                    dualAudioHandler.CleanupSecondaryAudio();
-                }
-            }
-            else if (candidates.Count == 1)
-            {
-                audioSource.transform.position = candidates[0].position + meshAudioOffset;
-                dualAudioHandler.CleanupSecondaryAudio();
+                if (!DualAudioHandler.SecondaryAudioSource)
+                    DualAudioHandler.HandleSecondaryAudio();
+
+                if (DualAudioHandler.SecondaryAudioObj)
+                    DualAudioHandler.SecondaryAudioObj.transform.position =
+                        secondary.Position;
             }
             else
             {
-                dualAudioHandler.CleanupSecondaryAudio();
+                SingleDualCandidate(_dualCandidates[0]);
             }
         }
 
-
-
-
-        // Returns the closest GameObject with the specified tag.
-        private GameObject GetClosestObjectByTag(string tag)
+        private void SingleDualCandidate(Candidate cand)
         {
-            GameObject[] objs = GameObject.FindGameObjectsWithTag(tag);
-            if (objs == null || objs.Length == 0)
-                return null;
+            if (mode == ZoneMode.Mesh && positionTarget)
+                positionTarget.transform.position = cand.Position;
+
+            if (audioSource)
+                audioSource.transform.position = cand.Position;
+
+            DualAudioHandler?.CleanupSecondaryAudio();
+        }
+
+        #endregion
+        /* ============================================================================ */
+
+        #region Occlusion / Primary Pos --------------------------------------------------------
+
+        private void ApplyPrimaryPosition(Vector3 pos)
+        {
+            if (positionTarget)
+                positionTarget.transform.position = pos;
+
+            if (audioSource)
+                audioSource.transform.position     = pos;
+
+            DualAudioHandler?.CleanupSecondaryAudio();
+        }
+
+        private void UpdateOcclusionForAll()
+        {
+            if (!enableOcclusion) return;
+
+            AudioZoneOcclusion.UpdateOcclusion(
+                currentTargetPosition,
+                positionTarget.transform.position,
+                audioSource,
+                this);
+
+            if (DualAudioHandler.SecondaryAudioSource)
+                AudioZoneOcclusion.UpdateOcclusion(
+                    currentTargetPosition,
+                    DualAudioHandler.SecondaryAudioSource.transform.position,
+                    DualAudioHandler.SecondaryAudioSource,
+                    this);
+        }
+
+        #endregion
+        /* ============================================================================ */
+
+        #region Utility Methods ---------------------------------------------------------------
+
+        private GameObject GetClosestObjectByTag(string objectTag)
+        {
+            var objs = GameObject.FindGameObjectsWithTag(objectTag);
+            if (objs.Length == 0) return null;
+
             GameObject closest = objs[0];
-            float minDist = (objs[0].transform.position - transform.position).sqrMagnitude;
-            foreach (GameObject obj in objs)
+            float minSqr = (closest.transform.position - cachedTransform.position).sqrMagnitude;
+
+            for (int i = 1; i < objs.Length; i++)
             {
-                float dist = (obj.transform.position - transform.position).sqrMagnitude;
-                if (dist < minDist)
+                float d = (objs[i].transform.position - cachedTransform.position).sqrMagnitude;
+                if (d < minSqr)
                 {
-                    minDist = dist;
-                    closest = obj;
+                    minSqr  = d;
+                    closest = objs[i];
                 }
             }
             return closest;
         }
 
+        #endregion
+        /* ============================================================================ */
+
+        #region Preview & Gizmos & LineMaterial -----------------------------------------------
 
         public void StopPreview()
         {
             editorPreview = false;
-            if (audioSource != null && audioSource.isPlaying)
+
+            if (audioSource && audioSource.isPlaying)
                 audioSource.Stop();
-            dualAudioHandler.StopAndCleanup();
-            if (multiEmitterHandler != null)
-                multiEmitterHandler.CleanupAll();
-            if (disabledAudioSourceForMultiEmitter)
+
+            DualAudioHandler?.StopAndCleanup();
+            MultiEmitterHandler?.CleanupAll();
+
+            if (disabledAudioSourceForMultiEmitter && audioSource)
             {
-                audioSource.enabled = true;
+                audioSource.enabled                = true;
                 disabledAudioSourceForMultiEmitter = false;
             }
 
-            if (mainListenerWasEnabled && Camera.main != null)
+            if (_editingPreview && Camera.main)
             {
-                AudioListener mainListener = Camera.main.GetComponent<AudioListener>();
-                if (mainListener != null)
-                    mainListener.enabled = true;
+                var mainListener = Camera.main.GetComponent<AudioListener>();
+                if (mainListener) mainListener.enabled = true;
+                _editingPreview = false;
             }
-            if (audioSource != null && audioSource.GetComponent<AudioLowPassFilter>() != null)
-                audioSource.GetComponent<AudioLowPassFilter>().cutoffFrequency = defaultLowPassCutoff;
-            mainListenerWasEnabled = false;
+
+            var lpf = audioSource ? audioSource.GetComponent<AudioLowPassFilter>() : null;
+            if (lpf) lpf.cutoffFrequency = defaultLowPassCutoff;
 
             SceneAudioListenerManager.DisableListener();
         }
 
 #if UNITY_EDITOR
-        void OnRenderObject()
+        private void OnRenderObject()
         {
-            if (audioSource == null || !debugMode)
-                return;
-            if ((!debugMode || mode == ZoneMode.MultiEmitter || !audioSource.isPlaying))
-                return;
+            if (!audioSource || !debugMode) return;
+            if (mode == ZoneMode.MultiEmitter || !audioSource.isPlaying) return;
 
             Vector3 target;
-            if (editorPreview && SceneView.lastActiveSceneView != null && SceneView.lastActiveSceneView.camera != null)
+            if (editorPreview && !Application.isPlaying &&
+                SceneView.lastActiveSceneView && SceneView.lastActiveSceneView.camera)
                 target = SceneView.lastActiveSceneView.camera.transform.position;
+            else if (trackingMode == TrackingMode.Object && trackingObject)
+                target = trackingObject.position;
             else
             {
-                GameObject targetObj = GetClosestObjectByTag(trackingTag);
-                if (targetObj == null)
-                    return;
-                target = targetObj.transform.position;
+                var obj = GetClosestObjectByTag(trackingTag);
+                if (!obj) return;
+                target = obj.transform.position;
             }
 
-            float triggerDistance = (triggerDistanceOverride > 0f) ? triggerDistanceOverride : (audioSource ? audioSource.maxDistance : 0f);
-            float triggerDistanceSqr = triggerDistance * triggerDistance;
+            float trig = triggerDistanceOverride > 0f
+                ? triggerDistanceOverride
+                : (audioSource ? audioSource.maxDistance : 0f);
+            float trigSqr = trig * trig;
 
             CreateLineMaterial();
-            _lineMaterial.SetPass(0);
+            lineMaterial.SetPass(0);
             GL.PushMatrix();
             GL.MultMatrix(Matrix4x4.identity);
 
             Vector3 pos = audioSource.transform.position;
-            float crossSize = 0.25f;
+            float cross = .25f;
             GL.Begin(GL.LINES);
             GL.Color(Color.cyan);
-            GL.Vertex(pos + Vector3.right * crossSize);
-            GL.Vertex(pos - Vector3.right * crossSize);
-            GL.Vertex(pos + Vector3.up * crossSize);
-            GL.Vertex(pos - Vector3.up * crossSize);
-            GL.Vertex(pos + Vector3.forward * crossSize);
-            GL.Vertex(pos - Vector3.forward * crossSize);
+            GL.Vertex(pos + Vector3.right * cross);   GL.Vertex(pos - Vector3.right * cross);
+            GL.Vertex(pos + Vector3.up    * cross);   GL.Vertex(pos - Vector3.up    * cross);
+            GL.Vertex(pos + Vector3.forward * cross); GL.Vertex(pos - Vector3.forward * cross);
             GL.End();
 
-            if (enableOcclusion)
+            if (enableOcclusion && (target - pos).sqrMagnitude <= trigSqr)
             {
-                if ((target - pos).sqrMagnitude <= triggerDistanceSqr)
-                {
-                    List<Vector3> offsets = AudioZoneOcclusion.GetOcclusionOffsets(target, pos, occlusionSampleRadius, occlusionResolution);
-                    GL.Begin(GL.LINES);
-                    foreach (Vector3 offset in offsets)
-                    {
-                        Vector3 sampleOrigin = target + offset;
-                        Vector3 sampleTarget = pos + offset;
-                        Color rayColor = Color.yellow;
-                        if (Physics.Raycast(sampleOrigin, (sampleTarget - sampleOrigin).normalized,
-                                            out RaycastHit hit,
-                                            Vector3.Distance(sampleOrigin, sampleTarget),
-                                            occlusionLayer))
-                        {
-                            if (!(mode == ZoneMode.Mesh && meshFilters != null && meshFilters.Count > 0 &&
-                                 meshFilters.Exists(mf => mf != null && hit.collider.gameObject == mf.gameObject)))
-                                rayColor = Color.red;
-                        }
-                        GL.Color(rayColor);
-                        GL.Vertex(sampleOrigin);
-                        GL.Vertex(sampleTarget);
-                    }
-                    GL.End();
-                }
-            }
+                GL.Begin(GL.LINES);
 
+                if (!occlusion2DMode)                                                 // 3‑D
+                {
+                    var offs = AudioZoneOcclusion.GetOcclusionOffsets(
+                        target, pos, occlusionSampleRadius, occlusionResolution);
+
+                    foreach (var off in offs)
+                    {
+                        Vector3 p0 = target + off;
+                        Vector3 p1 = pos    + off;
+                        Color   col = Hit3D(p0, p1) ? Color.red : Color.yellow;
+                        GL.Color(col); GL.Vertex(p0); GL.Vertex(p1);
+                    }
+                }
+                else                                                                  // 2‑D
+                {
+                    Vector2 src2 = new(pos.x, pos.y);
+                    Vector2 dst2 = new(target.x, target.y);
+                    float   dist = Vector2.Distance(src2, dst2);
+
+                    var dirs = Get2DDirections(src2, dst2,
+                               occlusion2DSpreadDegrees, occlusionResolution);
+
+                    foreach (var d in dirs)
+                    {
+                        Vector3 p0 = pos;
+                        Vector3 p1 = pos + new Vector3(d.x, d.y, 0f) * dist;
+                        Color   col = Hit2D(src2, d, dist) ? Color.red : Color.yellow;
+                        GL.Color(col); GL.Vertex(p0); GL.Vertex(p1);
+                    }
+                }
+                GL.End();
+            }
             GL.PopMatrix();
         }
 
-        void OnDrawGizmos()
+        private bool Hit3D(Vector3 p0, Vector3 p1)
+        {
+            return Physics.Raycast(p0, (p1 - p0).normalized,
+                                   out var h,
+                                   Vector3.Distance(p0, p1),
+                                   occlusionLayer) &&
+                   !(mode == ZoneMode.Mesh && meshFilters != null &&
+                     meshFilters.Exists(mf => mf && h.collider.gameObject == mf.gameObject));
+        }
+
+        private bool Hit2D(Vector2 origin, Vector2 dir, float dist)
+        {
+            RaycastHit2D h = Physics2D.Raycast(origin, dir, dist, occlusionLayer);
+            return h.collider != null;
+        }
+
+        private static List<Vector2> Get2DDirections(Vector2 src, Vector2 tgt,
+                                                     float spreadDeg, int res)
+        {
+            Vector2 baseDir = (tgt - src).normalized;
+            float half = spreadDeg * 0.5f * Mathf.Deg2Rad;
+            res = Mathf.Max(1, res);
+            var list = new List<Vector2>(res);
+
+            if (res == 1) { list.Add(baseDir); return list; }
+            for (int i = 0; i < res; i++)
+            {
+                float t = (float)i / (res - 1);
+                float a = Mathf.Lerp(-half, half, t);
+                float c = Mathf.Cos(a);
+                float s = Mathf.Sin(a);
+                Vector2 d = new Vector2(c * baseDir.x - s * baseDir.y,
+                                         s * baseDir.x + c * baseDir.y);
+                list.Add(d.normalized);
+            }
+            return list;
+        }
+        private void OnDrawGizmos()
         {
             if (Selection.activeGameObject != gameObject)
                 return;
@@ -716,29 +788,31 @@ namespace TelePresent.SoundShapes
             if (mode == ZoneMode.Shape && points.Count > 0)
             {
                 Gizmos.color = Color.green;
-                for (int i = 0; i < points.Count - 1; i++)
-                    Gizmos.DrawLine(cachedTransform.TransformPoint(points[i]), cachedTransform.TransformPoint(points[i + 1]));
+                for (var i = 0; i < points.Count - 1; i++)
+                    Gizmos.DrawLine(cachedTransform.TransformPoint(points[i]),
+                        cachedTransform.TransformPoint(points[i + 1]));
                 if (points.Count > 2 && closedShape)
-                    Gizmos.DrawLine(cachedTransform.TransformPoint(points[points.Count - 1]), cachedTransform.TransformPoint(points[0]));
+                    Gizmos.DrawLine(cachedTransform.TransformPoint(points[^1]),
+                        cachedTransform.TransformPoint(points[0]));
             }
 
             if (mode == ZoneMode.MultiEmitter && multiEmitterPoints != null)
             {
                 Gizmos.color = Color.cyan;
-                foreach (Vector3 pt in multiEmitterPoints)
+                foreach (var pt in multiEmitterPoints)
                     Gizmos.DrawSphere(cachedTransform.TransformPoint(pt), 0.1f);
             }
 
-            if (audioSource != null)
+            if (audioSource)
             {
-                List<Vector3> offsetPerimeter = AudioZoneGeometry.GetOffsetPerimeter(this);
+                var offsetPerimeter = AudioZoneGeometry.GetOffsetPerimeter(this);
                 if (offsetPerimeter.Count > 1)
                 {
                     Gizmos.color = Color.red;
-                    for (int i = 0; i < offsetPerimeter.Count; i++)
+                    for (var i = 0; i < offsetPerimeter.Count; i++)
                     {
-                        Vector3 current = offsetPerimeter[i];
-                        Vector3 next = offsetPerimeter[(i + 1) % offsetPerimeter.Count];
+                        var current = offsetPerimeter[i];
+                        var next = offsetPerimeter[(i + 1) % offsetPerimeter.Count];
                         Gizmos.DrawLine(current, next);
                     }
                 }
@@ -746,63 +820,79 @@ namespace TelePresent.SoundShapes
         }
 #endif
 
-        static void CreateLineMaterial()
+        private static void CreateLineMaterial()
         {
-            if (!_lineMaterial)
+            if (!lineMaterial)
             {
-                Shader shader = Shader.Find("Hidden/Internal-Colored");
-                _lineMaterial = new Material(shader)
+                var shader = Shader.Find("Hidden/Internal-Colored");
+                lineMaterial = new Material(shader)
                 {
                     hideFlags = HideFlags.HideAndDontSave
                 };
-                _lineMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                _lineMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                _lineMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
-                _lineMaterial.SetInt("_ZWrite", 0);
+                lineMaterial.SetInt(SrcBlend, (int)BlendMode.SrcAlpha);
+                lineMaterial.SetInt(DstBlend, (int)BlendMode.OneMinusSrcAlpha);
+                lineMaterial.SetInt(Cull, (int)CullMode.Off);
+                lineMaterial.SetInt(ZWrite, 0);
             }
         }
 
-        public void SetTarget(Transform trackingTarget)
+        
+        private void EnterEditorMultiEmitter()
         {
-            if (trackingTarget == null)
+            EnsureHandlers();
+
+            if (audioSource)
             {
-                Debug.LogWarning("SetTarget called with null trackingTarget.");
+                audioSource.Stop();
+                audioSource.enabled = false;
+            }
+
+            disabledAudioSourceForMultiEmitter = true;
+            DualAudioHandler.StopAndCleanup();
+            MultiEmitterHandler.UpdateMultiEmitterLogic();
+        }
+        
+        #endregion
+        /* ============================================================================ */
+
+  #region Public API ---------------------------------------------------------------------
+
+        public void SetTarget(Transform tgt)
+        {
+            if (!tgt)
+            {
+                Debug.LogWarning("SetTarget called with null Transform.");
                 return;
             }
-            trackingObject = trackingTarget;
+            trackingObject = tgt;
         }
 
-        public void ToggleClosedLoop(bool closedShape)
+        public void ToggleClosedLoop(bool closed)
         {
             if (mode == ZoneMode.Shape)
-                this.closedShape = closedShape;
+                closedShape = closed;
             else
-                Debug.LogWarning("Closed loop setting is only available in Shape mode.");
+                Debug.LogWarning("Closed loop only valid in Shape mode.");
         }
 
-        public void ToggleShouldTrack(bool shouldTrack)
-        {
-            this.shouldTrack = shouldTrack;
-        }
+        public void ToggleShouldTrack(bool track) => shouldTrack = track;
 
         public void SetTrackingTag(string newTag)
         {
-            if (newTag == null)
-            {
-                Debug.LogWarning("SetTrackingTag called with null newTag.");
-                return;
-            }
-            trackingTag = newTag;
+            if (string.IsNullOrEmpty(newTag))
+                Debug.LogWarning("SetTrackingTag called with null/empty tag.");
+            else
+                trackingTag = newTag;
         }
 
-        public void AddMeshTarget(MeshFilter filter)
+        public void AddMeshTarget(MeshFilter mf)
         {
-            if (filter == null)
+            if (!mf)
             {
                 Debug.LogWarning("AddMeshTarget called with null MeshFilter.");
                 return;
             }
-            meshFilters.Add(filter);
+            meshFilters.Add(mf);
             AudioZoneGeometry.GenerateMeshData(this);
         }
 
@@ -812,120 +902,64 @@ namespace TelePresent.SoundShapes
             cachedMeshDataList.Clear();
         }
 
-        public void RemoveMultiPoint(int pointIndex)
+        public void RemoveMultiPoint(int idx)
         {
-            if (pointIndex >= 0 && pointIndex < multiEmitterPoints.Count)
-                multiEmitterPoints.RemoveAt(pointIndex);
+            if (idx >= 0 && idx < multiEmitterPoints.Count)
+                multiEmitterPoints.RemoveAt(idx);
             else
-                Debug.LogWarning($"RemoveMultiPoint called with invalid index: {pointIndex}.");
+                Debug.LogWarning($"RemoveMultiPoint invalid index: {idx}");
         }
 
-        public void AddMultiPoint(Vector3 location)
-        {
-            multiEmitterPoints.Add(location);
-        }
+        public void AddMultiPoint(Vector3 loc)            => multiEmitterPoints.Add(loc);
+        public void ClearMultiPoints()                    => multiEmitterPoints.Clear();
 
-        public void ClearMultiPoints()
+        public void SetMultiPointLocation(int i, Vector3 loc)
         {
-            multiEmitterPoints.Clear();
-        }
-
-        public void SetMultiPointLocation(int index, Vector3 location)
-        {
-            if (index >= 0 && index < multiEmitterPoints.Count)
-                multiEmitterPoints[index] = location;
+            if (i >= 0 && i < multiEmitterPoints.Count)
+                multiEmitterPoints[i] = loc;
             else
-                Debug.LogWarning($"SetMultiPointLocation called with invalid index: {index}.");
+                Debug.LogWarning($"SetMultiPointLocation invalid index: {i}");
         }
 
-        public void SetTrackingMode(TrackingMode newMode)
+        public void SetTrackingMode(TrackingMode m)       => trackingMode = m;
+
+        public void PopulateMultiPoints(List<Transform> ts)
         {
-            trackingMode = newMode;
+            if (ts == null) { Debug.LogWarning("PopulateMultiPoints null list."); return; }
+            foreach (var t in ts) if (t) multiEmitterPoints.Add(t.position);
         }
 
-        public void PopulateMultiPoints(List<Transform> transforms)
+        public void PopulateMultiPoints(List<Vector3> vs)
         {
-            if (transforms == null)
-            {
-                Debug.LogWarning("PopulateMultiPoints (Transform) called with null list.");
-                return;
-            }
-
-            foreach (Transform t in transforms)
-            {
-                if (t != null)
-                    multiEmitterPoints.Add(t.position);
-                else
-                    Debug.LogWarning("PopulateMultiPoints encountered a null Transform.");
-            }
+            if (vs == null) { Debug.LogWarning("PopulateMultiPoints null list."); return; }
+            multiEmitterPoints.AddRange(vs);
         }
 
-        public void PopulateMultiPoints(List<Vector3> positions)
+        public void AddShapePoint(Vector3 p)              => points.Add(p);
+        public void RemoveShapePoint(int i)
         {
-            if (positions == null)
-            {
-                Debug.LogWarning("PopulateMultiPoints (Vector3) called with null list.");
-                return;
-            }
-
-            foreach (Vector3 position in positions)
-                multiEmitterPoints.Add(position);
+            if (i >= 0 && i < points.Count) points.RemoveAt(i);
+            else Debug.LogWarning($"RemoveShapePoint invalid index: {i}");
         }
+        public void ClearShapePoints()                    => points.Clear();
 
-        public void AddShapePoint(Vector3 location)
+        public void SetShapePointLocation(int i, Vector3 p)
         {
-            points.Add(location);
+            if (i >= 0 && i < points.Count) points[i] = p;
+            else Debug.LogWarning($"SetShapePointLocation invalid index: {i}");
         }
 
-        public void RemoveShapePoint(int pointIndex)
+        public void PopulateShapePoints(List<Transform> ts)
         {
-            if (pointIndex >= 0 && pointIndex < points.Count)
-                points.RemoveAt(pointIndex);
-            else
-                Debug.LogWarning($"RemoveShapePoint called with invalid index: {pointIndex}.");
+            if (ts == null) { Debug.LogWarning("PopulateShapePoints null list."); return; }
+            foreach (var t in ts) if (t) points.Add(t.position);
         }
 
-        public void ClearShapePoints()
+        public void PopulateShapePoints(List<Vector3> vs)
         {
-            points.Clear();
+            if (vs == null) { Debug.LogWarning("PopulateShapePoints null list."); return; }
+            points.AddRange(vs);
         }
-
-        public void SetShapePointLocation(int index, Vector3 location)
-        {
-            if (index >= 0 && index < points.Count)
-                points[index] = location;
-            else
-                Debug.LogWarning($"SetShapePointLocation called with invalid index: {index}.");
-        }
-
-        public void PopulateShapePoints(List<Transform> transforms)
-        {
-            if (transforms == null)
-            {
-                Debug.LogWarning("PopulateShapePoints (Transform) called with null list.");
-                return;
-            }
-
-            foreach (Transform t in transforms)
-            {
-                if (t != null)
-                    points.Add(t.position);
-                else
-                    Debug.LogWarning("PopulateShapePoints encountered a null Transform.");
-            }
-        }
-
-        public void PopulateShapePoints(List<Vector3> positions)
-        {
-            if (positions == null)
-            {
-                Debug.LogWarning("PopulateShapePoints (Vector3) called with null list.");
-                return;
-            }
-
-            foreach (Vector3 position in positions)
-                points.Add(position);
-        }
-
+        #endregion
     }
 }

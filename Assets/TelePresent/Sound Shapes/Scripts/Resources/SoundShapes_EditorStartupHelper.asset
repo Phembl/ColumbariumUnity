@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4335b1637118724d8e339e0924cbb8b, type: 3}
   m_Name: SoundShapes_EditorStartupHelper
   m_EditorClassIdentifier: 
-  displayWelcomeMessageOnLaunch: 1
+  displayWelcomeMessageOnLaunch: 0
   firstInitialization: 0

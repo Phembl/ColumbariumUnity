@@ -12,26 +12,34 @@ namespace TelePresent.SoundShapes
 {
     public static class SoundShapesSettings
     {
-        private const string kDrawOnMeshKey = "AudioZoneSettings_DrawOnMesh";
-        private const string kDrawOnColliderKey = "AudioZoneSettings_DrawOnCollider";
-        private const string kDrawMeshHeightOffsetKey = "AudioZoneSettings_DrawMeshHeightOffset";
+        private const string KDrawOnMeshKey = "AudioZoneSettings_DrawOnMesh";
+        private const string KDrawOnColliderKey = "AudioZoneSettings_DrawOnCollider";
+        private const string KDrawMeshHeightOffsetKey = "AudioZoneSettings_DrawMeshHeightOffset";
+        private const string k_2DZDepth = "AudioZoneSettings_2DZDepth";
+
 
         public static bool DrawOnMesh
         {
-            get { return EditorPrefs.GetBool(kDrawOnMeshKey, true); }
-            set { EditorPrefs.SetBool(kDrawOnMeshKey, value); }
+            get => EditorPrefs.GetBool(KDrawOnMeshKey, true);
+            set => EditorPrefs.SetBool(KDrawOnMeshKey, value);
         }
 
         public static bool DrawOnCollider
         {
-            get { return EditorPrefs.GetBool(kDrawOnColliderKey, true); }
-            set { EditorPrefs.SetBool(kDrawOnColliderKey, value); }
+            get => EditorPrefs.GetBool(KDrawOnColliderKey, true);
+            set => EditorPrefs.SetBool(KDrawOnColliderKey, value);
         }
 
         public static float DrawMeshHeightOffset
         {
-            get { return EditorPrefs.GetFloat(kDrawMeshHeightOffsetKey, 0.1f); }
-            set { EditorPrefs.SetFloat(kDrawMeshHeightOffsetKey, value); }
+            get => EditorPrefs.GetFloat(KDrawMeshHeightOffsetKey, 0.1f);
+            set => EditorPrefs.SetFloat(KDrawMeshHeightOffsetKey, value);
+        }
+        
+        public static float  TwoDZDepth
+        {
+            get => EditorPrefs.GetFloat(k_2DZDepth, 0f);
+            set => EditorPrefs.SetFloat(k_2DZDepth, value);
         }
     }
 }

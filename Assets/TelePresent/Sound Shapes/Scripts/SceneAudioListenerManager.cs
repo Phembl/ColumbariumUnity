@@ -15,7 +15,8 @@ namespace TelePresent.SoundShapes
 {
     public static class SceneAudioListenerManager
     {
-        public static GameObject sceneAudioListener;
+        
+        private static GameObject sceneAudioListener;
 
         /// <summary>
         /// Updates (or creates if necessary) the scene audio listener to follow the Scene view camera.
@@ -23,11 +24,11 @@ namespace TelePresent.SoundShapes
         public static void UpdateListener()
         {
 #if UNITY_EDITOR
-            if (SceneView.lastActiveSceneView == null || SceneView.lastActiveSceneView.camera == null)
+            if (!SceneView.lastActiveSceneView || !SceneView.lastActiveSceneView.camera)
                 return;
 
             Camera sceneViewCam = SceneView.lastActiveSceneView.camera;
-            if (sceneAudioListener == null)
+            if (!sceneAudioListener)
             {
                 sceneAudioListener = new GameObject("SceneViewAudioListener");
                 sceneAudioListener.hideFlags = HideFlags.HideAndDontSave;
@@ -44,7 +45,7 @@ namespace TelePresent.SoundShapes
         public static void DisableListener()
         {
 #if UNITY_EDITOR
-            if (sceneAudioListener != null)
+            if (sceneAudioListener)
             {
                 Object.DestroyImmediate(sceneAudioListener);
                 sceneAudioListener = null;
