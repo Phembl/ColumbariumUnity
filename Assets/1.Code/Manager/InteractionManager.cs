@@ -11,15 +11,16 @@ public class InteractionManager : MonoBehaviour
     private InputAction navigateAction;
     private InputAction submitAction;
     private InputAction startAction;
-    private Vector2 moveInput;
-    private bool navigateProcessed = false;
+    private Vector2 navigationInput;
     
     // Events
     public static event Action StartButtonPressed;
+    public static event Action SubmitButtonPressed;
+    public static event Action<int> NavigationInput;
     
     // External Control
     private bool isActive;
-    public void ActivateInteraction(bool activate) => isActive = activate;
+    
    
     
     public static InteractionManager instance;
@@ -59,6 +60,12 @@ public class InteractionManager : MonoBehaviour
         inputActions.Enable();
         
     }
+    
+    public void ActivateInteraction(bool activate)
+    {
+        SetupInputActions();
+        isActive = activate;
+    }
 
     void PressStartButton()
     {
@@ -71,15 +78,28 @@ public class InteractionManager : MonoBehaviour
     void PressSubmitButton()
     {
         if (!isActive) return;
+        
+        Debug.Log("InteractionManager: Submit button pressed");
+        SubmitButtonPressed?.Invoke();
     }
 
     
     void Update()
     {
         // Get input values
-        if (isActive)
+        if (!isActive) return;
+        
+        navigationInput = navigateAction.ReadValue<Vector2>();
+        if (navigationInput.x != 0)
         {
-            moveInput = navigateAction.ReadValue<Vector2>();
+            if (navigationInput.x > 0)
+            {
+                NavigationInput?.Invoke(1);
+            }
+            else if (navigationInput.x < 0)
+            {
+                NavigationInput?.Invoke(-1);
+            }
         }
     }
 }

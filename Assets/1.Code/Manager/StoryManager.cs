@@ -926,6 +926,7 @@ public class StoryManager : MonoBehaviour
         yield return new WaitForSeconds(farewellAudio1.length + 7f);
             
         PlayStoryAudio(farewellAudio2, new Vector3(100,100,100), true);  
+        
         yield return new WaitForSeconds(farewellAudio2.length + 30f);
             
         blackScreen.DOFade(1f, 4f);

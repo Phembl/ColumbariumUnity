@@ -1,6 +1,7 @@
+using DG.Tweening;
 using UnityEngine;
 
-public class StoryTrigger : MonoBehaviour
+public class StoryPortal : MonoBehaviour
 {
     
     //[SerializeField] private int storyID;
@@ -8,11 +9,14 @@ public class StoryTrigger : MonoBehaviour
     // Track if this story has been triggered
     private bool hasBeenTriggered = false;
     private string playerTag = "Player";
+
+    //Set by StoryManager
+    private bool isActive;
     
     
     private void OnTriggerEnter(Collider other)
     {
-        if (!hasBeenTriggered)
+        if (isActive && !hasBeenTriggered)
         {
             
             if (other.CompareTag(playerTag))
@@ -24,6 +28,18 @@ public class StoryTrigger : MonoBehaviour
         }
 
     }
-    
-    
+
+    public void EnablePortal()
+    {
+        isActive = true;
+        gameObject.GetComponent<SpriteRenderer>().DOFade(1f, 2f);
+    }
+
+    public void DisablePortal()
+    {
+        isActive = false;
+        gameObject.GetComponent<SpriteRenderer>().DOFade(0f, 0f);
+    }
+
+
 }

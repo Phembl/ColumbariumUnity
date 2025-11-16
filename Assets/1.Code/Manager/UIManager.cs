@@ -6,12 +6,14 @@ using COLUMBARIUM.Global;
 using DG.Tweening;
 using TMPro;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 public class UIManager : MonoBehaviour
 {
     [TitleGroup("References")] 
     [Header("TextObjects")] 
     [SerializeField] private TextFile[] narrationFiles;
+    [SerializeField] private TextFile[] answerFiles;
     [SerializeField] private TextFile ControlsTextFile;
     
     [Header("Components")]
@@ -38,7 +40,9 @@ public class UIManager : MonoBehaviour
     //StateTracking
     private bool loadIconActive;
     private bool scanCountActive;
-
+    public int selectedAnswer;
+    private bool tricksterQuestion;
+    
     public static UIManager instance;
     private void Awake()
     {
@@ -104,7 +108,7 @@ public class UIManager : MonoBehaviour
         narrationTMP.DOFade(0f, 1.5f)
             .OnComplete(() => narrationTMP.text = "");
     }
-
+    
     public void LoadIcon(bool activate)
     {
         if (activate)
@@ -119,31 +123,7 @@ public class UIManager : MonoBehaviour
             loadIcon.DOFade(0f, 1f);
         }
     }
-
-    public void ShowScanCounter(Chapter chapter, bool update = true, int scanCount = 0)
-    {
-        if (!showScanCounter) return;
-        
-        string scanCountText = scanCount.ToString();
-        string countTarget = GlobalProgress.GetStorypointCounter((int)chapter).ToString();
-        
-        if (update)
-        {
-            scan2TMP.text = $"{scanCountText} / {countTarget}";
-        }
-
-        else
-        {
-            string chapterName = GlobalProgress.chapterNames[(int)chapter];
-            
-            scan1TMP.text = chapterName;
-            scan2TMP.text = $"{scanCountText} / {countTarget}";
-            scanTextHolder.DOFade(1f, 2f);
-            
-            scanCountActive = true;
-        }
-    }
-
+    
     public IEnumerator ShowControllerText()
     {
         string controlsText;
@@ -160,6 +140,175 @@ public class UIManager : MonoBehaviour
         yield return new WaitForSeconds(1.5f);
     }
 
+    #region |---------- ANSWERS ----------|
+    
+    public void ShowAnswerText(Chapter chapter)
+    {
+        
+        answer1TMP.fontStyle = FontStyles.Underline;
+        answer2TMP.fontStyle = FontStyles.Normal;
+        
+        
+        switch (chapter)
+        {
+            case Chapter.TAUBENSCHLAG_QUESTION:
+                answer1TMP.text = answerFiles[0].text;
+                answer2TMP.text = answerFiles[1].text;
+                break;
+            
+            case Chapter.GARTEN_INV_QUESTION:
+                answer1TMP.text = answerFiles[2].text;
+                answer2TMP.text = answerFiles[3].text;
+                break;
+            
+            case Chapter.PIGEON_QUESTION:
+                tricksterQuestion = true;
+                answer1TMP.text = answerFiles[Random.Range(4, 12)].text;
+                answer2TMP.text = answerFiles[Random.Range(4, 12)].text;
+                break;
+            
+            
+            default:
+                Debug.LogWarning("Answers requested for an invalid chapter:"  + chapter);
+                break;
+        }
 
+        answer1TMP.DOFade(1f, 2f);
+        answer2TMP.DOFade(1f, 2f);
+
+        readyForInteraction = true;
+        selectedAnswer = 1;
+        
+    }
+
+    private void CheckAnswer(int answer)
+    {
+        if (!readyForInteraction) return;
+
+        switch (answer)
+        {
+            case 1:
+                if (selectedAnswer == 1) return;
+                
+                answer1TMP.fontStyle = FontStyles.Underline;
+                answer2TMP.fontStyle = FontStyles.Normal;
+
+                if (tricksterQuestion)
+                {
+                    answer1TMP.text = answerFiles[Random.Range(4, 13)].text;
+                }
+                
+                selectedAnswer = 1;
+                
+                Debug.Log("Selected Answer 1");
+                break;
+            
+            case 2:
+                if  (selectedAnswer == 2) return;
+                
+                answer1TMP.fontStyle = FontStyles.Normal;
+                answer2TMP.fontStyle = FontStyles.Underline;
+
+                if (tricksterQuestion)
+                {
+                    answer2TMP.text = answerFiles[Random.Range(4, 13)].text;
+                }
+                
+                selectedAnswer = 2;
+                
+                Debug.Log("Selected Answer 2");
+                break;
+        }
+    }
+
+    public int AnswerSelected()
+    {
+        textHolder.DOFade(0f, 1.5f)
+            .OnComplete(() =>
+            {
+                answer1TMP.DOFade(1f, 0f);
+                answer2TMP.DOFade(1f, 0f);
+            });
+        
+        int answer = selectedAnswer;
+        selectedAnswer = 0;
+        readyForInteraction = false;
+        tricksterQuestion = false;
+        
+        return answer;
+    }
+    
+    #endregion
+    
+    #region |---------- SCAN COUNTER ----------|
+
+    public void ShowScanCounter(Chapter chapter, bool update = true, int scanCount = 0)
+    {
+        if (!showScanCounter) return;
+        
+        string scanCountText = scanCount.ToString();
+        string countMax = GlobalProgress.GetStorypointMax(chapter).ToString();
+        
+        if (update)
+        {
+            scan2TMP.text = $"{scanCountText} / {countMax}";
+        }
+
+        else
+        {
+            string chapterName = GlobalProgress.chapterNames[(int)chapter];
+            
+            scan1TMP.text = chapterName;
+            scan2TMP.text = $"{scanCountText} / {countMax}";
+            scanTextHolder.DOFade(1f, 2f);
+            
+            scanCountActive = true;
+        }
+    }
+
+    public void HideScanCounter(float fadeTime = 2f)
+    {
+        if (!showScanCounter) return;
+
+        scanTextHolder.DOFade(0f, fadeTime);
+     
+    }
+    
+    #endregion
+
+    #region |---------- INTERACTION ----------|
+    
+    //Interaction Tracking
+    private bool readyForInteraction;
+    private bool submitButtonPressed;
+    
+    private void OnEnable()
+    {
+        InteractionManager.SubmitButtonPressed += PressSubmitButton;
+        InteractionManager.NavigationInput += NavigationInputed;
+    }
+
+    private void OnDisable()
+    {
+        InteractionManager.SubmitButtonPressed -= PressSubmitButton;
+        InteractionManager.NavigationInput -= NavigationInputed;
+    }
+    
+    void PressSubmitButton()
+    {
+        if(!readyForInteraction) return;
+        
+        submitButtonPressed = true;
+    }
+
+    void NavigationInputed(int direction)
+    {
+        if(!readyForInteraction) return;
+        
+        if (direction > 0) CheckAnswer(2);
+        else if (direction < 0) CheckAnswer(1);
+    }
+
+    #endregion
 
 }

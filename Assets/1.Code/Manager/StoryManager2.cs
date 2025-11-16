@@ -59,7 +59,7 @@ public class StoryManager2 : MonoBehaviour
         
         sceneLoader = currentSceneLoader;
         
-        Debug.Log("Starting Chapter_" + currentChapter.ToString());
+        Debug.Log("STORYMANAGER: Starting Chapter_" + currentChapter.ToString());
 
         if (currentChapterCoroutine != null) StopCoroutine(currentChapterCoroutine);
             
@@ -81,16 +81,28 @@ public class StoryManager2 : MonoBehaviour
                 currentChapterCoroutine = StartCoroutine(Chapter_Garten(afterSceneLoad));
                 break;
             
-            case Chapter.GARTEN_ALTERNATIVE:
-                currentChapterCoroutine = StartCoroutine(Chapter_Garten_Alternative());
+            case Chapter.GARTEN_INVERSE:
+                currentChapterCoroutine = StartCoroutine(Chapter_Garten_Inverese());
+                break;
+            
+            case Chapter.GARTEN_INV_QUESTION:
+                currentChapterCoroutine = StartCoroutine(Chapter_Garten_Inv_Question());
                 break;
             
             case Chapter.TAUBENSCHLAG:
                 currentChapterCoroutine = StartCoroutine(Chapter_Taubenschlag());
                 break;
             
-            case Chapter.PIDGEON:
-                currentChapterCoroutine = StartCoroutine(Chapter_Pidgeon());
+            case Chapter.TAUBENSCHLAG_QUESTION:
+                currentChapterCoroutine = StartCoroutine(Chapter_Taubenschlag_Question());
+                break;
+            
+            case Chapter.PIGEON:
+                currentChapterCoroutine = StartCoroutine(Chapter_Pigeon());
+                break;
+            
+            case Chapter.PIGEON_QUESTION:
+                currentChapterCoroutine = StartCoroutine(Chapter_Pidgeon_Question());
                 break;
             
             case Chapter.TRICKSTER:
@@ -162,7 +174,8 @@ public class StoryManager2 : MonoBehaviour
 
     IEnumerator Chapter_Prologue()
     {
-        StartCoroutine(UIManager.instance.UseBlackScreen(true,false, true));
+        MenuManager.instance.MakeMenuNotUsable();
+        UIManager.instance.LoadIcon(false);
         
         yield return new WaitForSeconds(2f);
 
@@ -185,7 +198,7 @@ public class StoryManager2 : MonoBehaviour
         
         yield return new WaitForSeconds(2f);
 
-        GameManager.instance.SwitchToScene(Chapter.NICHTS, "Garten", true);
+        StartCoroutine(GameManager.instance.SwitchToScene(Chapter.NICHTS, "Garten", true));
     }
 
     IEnumerator Chapter_Nichts()
@@ -201,6 +214,7 @@ public class StoryManager2 : MonoBehaviour
         sceneLoader.ShowStoryPoints();
         
         yield return StartCoroutine(UIManager.instance.ShowControllerText());
+        UIManager.instance.ShowScanCounter(Chapter.NICHTS, false);
 
     }
     
@@ -226,9 +240,46 @@ public class StoryManager2 : MonoBehaviour
         UIManager.instance.ShowScanCounter(Chapter.GARTEN, false);
     }
 
-    IEnumerator Chapter_Garten_Alternative()
+    IEnumerator Chapter_Garten_Inverese()
     {
-        yield return new WaitForEndOfFrame();
+        MenuManager.instance.MakeMenuUsable();
+        InteractionManager.instance.ActivateInteraction(false);
+        
+        playerController.UnlockInput();
+        yield return StartCoroutine(UIManager.instance.UseBlackScreen(false,true, true));
+        sceneLoader.ShowStoryPoints();
+        
+        UIManager.instance.ShowScanCounter(Chapter.GARTEN_INVERSE, false);
+    }
+    
+    IEnumerator Chapter_Garten_Inv_Question()
+    {
+        MenuManager.instance.MakeMenuNotUsable();
+        UIManager.instance.LoadIcon(false);
+        
+        yield return new WaitForSeconds(2f);
+        
+        //Show Question 
+        UIManager.instance.ShowNarrationText(3); //Show Text
+        yield return new WaitForSeconds(0.5f);
+        
+        //Show Answers and wait for selection
+        yield return StartCoroutine(WaitForAnswer(Chapter.GARTEN_INV_QUESTION));
+
+        int selectedAnswer = UIManager.instance.AnswerSelected();
+        yield return new WaitForSeconds(2f);
+
+        switch (selectedAnswer)
+        {
+            case 1:
+                StartCoroutine(GameManager.instance.SwitchToScene(Chapter.PIGEON, "Garten", true));
+                break;
+            
+            case 2:
+                StartCoroutine(GameManager.instance.SwitchToScene(Chapter.GARTEN_INV_QUESTION, "Garten", true));
+                break;
+        }
+        
     }
     
     IEnumerator Chapter_Taubenschlag()
@@ -244,19 +295,121 @@ public class StoryManager2 : MonoBehaviour
         UIManager.instance.ShowScanCounter(Chapter.TAUBENSCHLAG, false);
     }
     
-    IEnumerator Chapter_Pidgeon()
+    IEnumerator Chapter_Taubenschlag_Question()
     {
-        yield return new WaitForEndOfFrame();
+        MenuManager.instance.MakeMenuNotUsable();
+        InteractionManager.instance.ActivateInteraction(false);
+        UIManager.instance.LoadIcon(false);
+        
+        yield return new WaitForSeconds(2f);
+        
+        //Show Question 
+        UIManager.instance.ShowNarrationText(2); //Show Text
+        yield return new WaitForSeconds(0.5f);
+        
+        float audioLength = AudioManager.instance.PlayNarrationAudio(2); //Play Audio
+        yield return new WaitForSeconds(audioLength - 0.5f);
+        
+        //Show Answers and wait for selection
+        yield return StartCoroutine(WaitForAnswer(Chapter.TAUBENSCHLAG_QUESTION));
+
+        int selectedAnswer = UIManager.instance.AnswerSelected();
+        yield return new WaitForSeconds(2f);
+
+        switch (selectedAnswer)
+        {
+            case 1:
+                StartCoroutine(GameManager.instance.SwitchToScene(Chapter.PIGEON, "Garten", true));
+                break;
+            
+            case 2:
+                StartCoroutine(GameManager.instance.SwitchToScene(Chapter.CREDITS));
+                break;
+        }
+
+    }
+    
+    IEnumerator Chapter_Pigeon()
+    {
+        MenuManager.instance.MakeMenuUsable();
+        InteractionManager.instance.ActivateInteraction(false);
+        
+        playerController.UnlockInput();
+        yield return StartCoroutine(UIManager.instance.UseBlackScreen(false,true, true));
+        sceneLoader.ShowStoryPoints();
+        
+        UIManager.instance.ShowScanCounter(Chapter.PIGEON, false);
+    }
+    
+    IEnumerator Chapter_Pidgeon_Question()
+    {
+        MenuManager.instance.MakeMenuNotUsable();
+        UIManager.instance.LoadIcon(false);
+        
+        yield return new WaitForSeconds(2f);
+        
+        //Show Question 
+        UIManager.instance.ShowNarrationText(4); //Show Text
+        yield return new WaitForSeconds(0.5f);
+        
+        float audioLength = AudioManager.instance.PlayNarrationAudio(3); //This is 3 because Garten_Invert has no audio
+        yield return new WaitForSeconds(audioLength - 3f);
+        
+        //Show Answers and wait for selection
+        yield return StartCoroutine(WaitForAnswer(Chapter.PIGEON_QUESTION));
+        
+        int selectedAnswer = UIManager.instance.AnswerSelected();
+        yield return new WaitForSeconds(2f);
+
+        //No real selection happening
+        StartCoroutine(GameManager.instance.SwitchToScene(Chapter.TRICKSTER, "Taubenschlag", true));
+     
+        
     }
     
     IEnumerator Chapter_Trickster()
     {
-        yield return new WaitForEndOfFrame();
+        MenuManager.instance.MakeMenuUsable();
+        InteractionManager.instance.ActivateInteraction(false);
+        
+        playerController.UnlockInput();
+        yield return StartCoroutine(UIManager.instance.UseBlackScreen(false,true, true));
+        sceneLoader.ShowStoryPoints();
+        
+        UIManager.instance.ShowScanCounter(Chapter.TRICKSTER, false);
     }
     
     IEnumerator Chapter_Embryo()
     {
-        yield return new WaitForEndOfFrame();
+        MenuManager.instance.MakeMenuNotUsable();
+        InteractionManager.instance.ActivateInteraction(false);
+        
+        cinematicVideoPlayer.clip = embryoVideo;
+        cinematicVideoPlayer.isLooping = false;
+        cinematicVideoPlayer.SetTargetAudioSource(0, cinematicAudioPlayer);
+        cinematicVideoPlayer.Prepare();
+        
+        while (!cinematicVideoPlayer.isPrepared)
+        {
+            yield return null; // Wait for the next frame
+        }
+        
+        cinematicVideoPlayer.Play();
+        StartCoroutine(UIManager.instance.UseBlackScreen(false,true, true));
+        float waitTime = (float)(cinematicVideoPlayer.clip.length - 3);
+        Debug.Log("Video Wait Time: " + waitTime);
+        yield return new WaitForSeconds(waitTime);
+        
+        cinematicAudioPlayer.DOFade(0f, GameManager.instance.GetFadeTime());
+        yield return StartCoroutine(UIManager.instance.UseBlackScreen(true,true));
+
+        yield return new WaitForSeconds(0.5f);
+        
+        //Clean up
+        cinematicVideoPlayer.Pause();
+        StartCoroutine(GameManager.instance.SwitchToScene(Chapter.FAREWELL, "Garten", true));
+        
+        
     }
     
     IEnumerator Chapter_Farewell()
@@ -278,62 +431,154 @@ public class StoryManager2 : MonoBehaviour
     
     #region |---------- STORY PROGRESS ----------|
 
-    public void CheckStoryProgress(bool isTrigger = false) //Send by StoryObjects and StoryTrigger
+    public void CheckStoryProgress(bool isPortal = false) //Send by StoryObjects and StoryPortals
     {
         internalChapterProgress++;
 
         switch (currentChapter)
         {
             case Chapter.NICHTS:
-                if (isTrigger) StartChapter(Chapter.GARTEN, false, player, sceneLoader);
+                if (isPortal) StartChapter(Chapter.GARTEN, false, player, sceneLoader);
                 break;
             
             case Chapter.GARTEN:
-                UIManager.instance.ShowScanCounter(Chapter.GARTEN, true, internalChapterProgress);
-                sceneLoader.SpecificSceneInteraction(Chapter.GARTEN, internalChapterProgress);
-
-                if (isTrigger)
+                
+                if (isPortal) //Finish Chapter
                 {
-                    StartCoroutine(UIManager.instance.UseBlackScreen(true,false, false));
-                    GameManager.instance.SwitchToScene(Chapter.TAUBENSCHLAG, "Taubenschlag", true);
+                    StartCoroutine(FinishChapter_Garten());
                 }
+
+                else // Scan Object
+                {
+                    UIManager.instance.ShowScanCounter(Chapter.GARTEN, true, internalChapterProgress);
+                    sceneLoader.SpecificSceneInteraction(Chapter.GARTEN, internalChapterProgress);
+                }
+                
                 break;
             
-            case Chapter.GARTEN_ALTERNATIVE:
-                UIManager.instance.ShowScanCounter(Chapter.GARTEN_ALTERNATIVE, true, internalChapterProgress);
+            case Chapter.GARTEN_INVERSE:
+                
+                if (isPortal) //Finish Chapter
+                {
+                    StartCoroutine(FinishChapter_GartenInverse());
+                }
+
+                else // Scan Object
+                {
+                    UIManager.instance.ShowScanCounter(Chapter.GARTEN_INVERSE, true, internalChapterProgress);
+                    sceneLoader.SpecificSceneInteraction(Chapter.GARTEN_INVERSE, internalChapterProgress);
+                }
+                
                 break;
             
             case Chapter.TAUBENSCHLAG:
-                UIManager.instance.ShowScanCounter(Chapter.TAUBENSCHLAG, true, internalChapterProgress);
+                
+                if (isPortal) //Finish Chapter
+                {
+                    StartCoroutine(FinishChapter_Taubenschlag());
+                }
+
+                else // Scan Object
+                {
+                    UIManager.instance.ShowScanCounter(Chapter.TAUBENSCHLAG, true, internalChapterProgress);
+                    sceneLoader.SpecificSceneInteraction(Chapter.TAUBENSCHLAG, internalChapterProgress);
+                }
+                
                 break;
             
-            case Chapter.PIDGEON:
-                UIManager.instance.ShowScanCounter(Chapter.PIDGEON, true, internalChapterProgress);
+            case Chapter.PIGEON:
+                
+                if (isPortal) //Finish Chapter
+                {
+                    StartCoroutine(FinishChapter_Pidgeon());
+                }
+
+                else // Scan Object
+                {
+                    UIManager.instance.ShowScanCounter(Chapter.PIGEON, true, internalChapterProgress);
+                    sceneLoader.SpecificSceneInteraction(Chapter.PIGEON, internalChapterProgress);
+                }
+                
                 break;
             
             case Chapter.TRICKSTER:
-                UIManager.instance.ShowScanCounter(Chapter.TRICKSTER, true, internalChapterProgress);
+               
+                if (isPortal) //Finish Chapter
+                {
+                    StartCoroutine(FinishChapter_Trickster());
+                }
+
+                else // Scan Object
+                {
+                    UIManager.instance.ShowScanCounter(Chapter.TRICKSTER, true, internalChapterProgress);
+                    sceneLoader.SpecificSceneInteraction(Chapter.TRICKSTER, internalChapterProgress);
+                }
+                
                 break;
             
         }
     }
+
+    IEnumerator FinishChapter_Garten()
+    {
+        Debug.Log("SCENE MANAGER: Finished Garten Chapter.");
+        
+        yield return StartCoroutine(EndChapter());
+        StartCoroutine(GameManager.instance.SwitchToScene(Chapter.TAUBENSCHLAG, "Taubenschlag", true));
+    }
+    
+    IEnumerator FinishChapter_GartenInverse()
+    {
+        Debug.Log("SCENE MANAGER: Finished Garten Inverse Chapter.");
+        
+        yield return StartCoroutine(EndChapter());
+        StartCoroutine(GameManager.instance.SwitchToScene(Chapter.GARTEN_INV_QUESTION));
+    }
+    
+    IEnumerator FinishChapter_Taubenschlag()
+    {
+        Debug.Log("SCENE MANAGER: Finished Taubenschlag Chapter.");
+        
+        yield return StartCoroutine(EndChapter());
+        StartCoroutine(GameManager.instance.SwitchToScene(Chapter.TAUBENSCHLAG_QUESTION));
+    }
+    
+    IEnumerator FinishChapter_Pidgeon()
+    {
+        Debug.Log("SCENE MANAGER: Finished Pidgeon Chapter.");
+        
+        yield return StartCoroutine(EndChapter());
+        StartCoroutine(GameManager.instance.SwitchToScene(Chapter.PIGEON_QUESTION));
+    }
+
+    IEnumerator FinishChapter_Trickster()
+    {
+        Debug.Log("SCENE MANAGER: Finished Trickster Chapter.");
+        
+        yield return StartCoroutine(EndChapter());
+        StartCoroutine(GameManager.instance.SwitchToScene(Chapter.EMBRYO));
+    }
     
     #endregion
     
-    #region |---------- EVENTS ----------|
+    #region |---------- INTERACTION EVENTS ----------|
     
     //Interaction Tracking
     private bool readyForStartButton;
+    private bool readyForSubmitButton;
     private bool startButtonPressed;
+    private bool submitButtonPressed;
     
     private void OnEnable()
     {
         InteractionManager.StartButtonPressed += PressStartButton;
+        InteractionManager.SubmitButtonPressed += PressSubmitButton;
     }
 
     private void OnDisable()
     {
         InteractionManager.StartButtonPressed -= PressStartButton;
+        InteractionManager.SubmitButtonPressed -= PressSubmitButton;
     }
     
     void PressStartButton()
@@ -343,8 +588,42 @@ public class StoryManager2 : MonoBehaviour
         startButtonPressed = true;
     }
 
+    void PressSubmitButton()
+    {
+        if(!readyForSubmitButton) return;
+        
+        submitButtonPressed = true;
+    }
+
     #endregion
     
+    
+    #region |---------- HELPER ----------|
+
+    IEnumerator EndChapter(float fadeTime = 2f)
+    {
+        StartCoroutine(UIManager.instance.UseBlackScreen(true,false, false));
+        UIManager.instance.HideScanCounter(fadeTime);
+        yield return StartCoroutine(AudioManager.instance.FadeAwayAudio(fadeTime));
+        
+        yield return new WaitForSeconds(1f);
+        
+    }
+
+    IEnumerator WaitForAnswer(Chapter chapter)
+    {
+        //Show Answers
+        UIManager.instance.ShowAnswerText(chapter);
+        InteractionManager.instance.ActivateInteraction(true);
+        readyForSubmitButton = true;
+        
+        //Wait for Answer selection
+        yield return new WaitUntil(() => submitButtonPressed);
+        readyForSubmitButton = false;
+        InteractionManager.instance.ActivateInteraction(false);
+    }
+    
+    #endregion
     
 
    

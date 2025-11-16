@@ -16,6 +16,8 @@ public class GameManager : MonoBehaviour
     [TitleGroup("References")]
     [Header("Audio")]
     [SerializeField] private AudioListener mainAudioListener;
+    [Header("Player Controller")]
+    [SerializeField] public GameObject[] playerController;
     
     [TitleGroup("Settings")]
     [Header("Story")]
@@ -23,10 +25,11 @@ public class GameManager : MonoBehaviour
     [SerializeField, MinValue(0), ToggleGroup("overwriteStorySettings")] private bool overwriteStorySettings;
     [SerializeField, MinValue(0), ToggleGroup("overwriteStorySettings")] private Chapter startChapter;
     [SerializeField, MinValue(0), ToggleGroup("overwriteStorySettings")] private int gardenStoryCount = 5;
+    [SerializeField, MinValue(0), ToggleGroup("overwriteStorySettings")] private int gardenInvertStoryCount = 3;
     [SerializeField, MinValue(0), ToggleGroup("overwriteStorySettings")] private int taubenschlagStoryCount = 7;
     [SerializeField, MinValue(0), ToggleGroup("overwriteStorySettings")] private int pidgeonStoryCount = 6;
-    [SerializeField, MinValue(0), ToggleGroup("overwriteStorySettings")] private int tricksterStoryCount = 4;
-    [SerializeField, MinValue(0), ToggleGroup("overwriteStorySettings")] private int altGardenStoryCount = 3;
+    [SerializeField, MinValue(0), ToggleGroup("overwriteStorySettings")] private int tricksterStoryCount = 5;
+   
 
     [Button(ButtonSizes.Small, ButtonStyle.Box), ToggleGroup("overwriteStorySettings")]
     private void resetStoryPoints()
@@ -36,7 +39,7 @@ public class GameManager : MonoBehaviour
         taubenschlagStoryCount = 7;
         pidgeonStoryCount = 6;
         tricksterStoryCount = 4;
-        altGardenStoryCount = 3;
+        gardenInvertStoryCount = 3;
         #endif
     }
     
@@ -77,7 +80,7 @@ public class GameManager : MonoBehaviour
     {
         UIManager.instance.InitUI();
         InteractionManager.instance.InitInteraction();
-        GlobalProgress.english =  english;
+        GlobalProgress.english = english;
         
         StartNewGame();
     }
@@ -85,7 +88,7 @@ public class GameManager : MonoBehaviour
     private void StartNewGame()
     {
         
-        StartCoroutine(UIManager.instance.UseBlackScreen(true));
+        //StartCoroutine(UIManager.instance.UseBlackScreen(true));
         
         StoryManager2.instance.InitStoryManager();
 
@@ -96,11 +99,11 @@ public class GameManager : MonoBehaviour
 
         else
         {
-            GlobalProgress.OverrideStorypointCounter(3, gardenStoryCount);
-            GlobalProgress.OverrideStorypointCounter(4, altGardenStoryCount);
-            GlobalProgress.OverrideStorypointCounter(5, taubenschlagStoryCount);
-            GlobalProgress.OverrideStorypointCounter(6, pidgeonStoryCount);
-            GlobalProgress.OverrideStorypointCounter(7, tricksterStoryCount);
+            GlobalProgress.OverrideStorypointCounter(Chapter.GARTEN, gardenStoryCount);
+            GlobalProgress.OverrideStorypointCounter(Chapter.GARTEN_INVERSE, gardenInvertStoryCount);
+            GlobalProgress.OverrideStorypointCounter(Chapter.TAUBENSCHLAG, taubenschlagStoryCount);
+            GlobalProgress.OverrideStorypointCounter(Chapter.PIGEON, pidgeonStoryCount);
+            GlobalProgress.OverrideStorypointCounter(Chapter.TRICKSTER, tricksterStoryCount);
         }
         
         //Determine Start Scene
@@ -110,8 +113,8 @@ public class GameManager : MonoBehaviour
         {
             case Chapter.NICHTS: 
             case Chapter.GARTEN:
-            case Chapter.GARTEN_ALTERNATIVE:
-            case Chapter.PIDGEON:
+            case Chapter.GARTEN_INVERSE:
+            case Chapter.PIGEON:
             case Chapter.FAREWELL:
                 sceneToStart = "Garten";
                 loadNewScene = true;
@@ -148,7 +151,7 @@ public class GameManager : MonoBehaviour
         {
             mainAudioListener.enabled = false;
             yield return LoadScene(sceneName);
-            currentSceneloader = GameObject.Find("SceneLoader").GetComponent<SceneLoader>();
+            currentSceneloader = GameObject.Find("SceneManager").GetComponent<SceneLoader>();
             currentPlayerController = currentSceneloader.InitChapterOnLoad(nextChapter);
         }
 
@@ -159,6 +162,9 @@ public class GameManager : MonoBehaviour
             mainAudioListener.enabled = true;
         }
         
+        //Reset Audio
+        AudioManager.instance.ResetMasterVolume();
+        
         //StartChapter
         StoryManager2.instance.StartChapter(nextChapter, true, currentPlayerController, currentSceneloader);
     }
@@ -166,7 +172,7 @@ public class GameManager : MonoBehaviour
     #region |---------- SCENE LOADER ----------|
     private IEnumerator SceneUnloader()
     {
-        Debug.Log("Starting to unload all game scenes...");
+        Debug.Log("GAME MANAGER: Starting to unload all open game scenes.");
 
         // Create a list to hold the unload operations
         List<AsyncOperation> operations = new List<AsyncOperation>();
@@ -202,9 +208,8 @@ public class GameManager : MonoBehaviour
             }
         }
         
-
         // This code will only run AFTER all scenes have been unloaded
-        Debug.Log("All game scenes have been unloaded successfully!");
+        Debug.Log("GAME MANAGER: All game scenes have been unloaded successfully!");
     }
     
     
@@ -212,7 +217,7 @@ public class GameManager : MonoBehaviour
     IEnumerator LoadScene(string sceneToLoad)
     {
         // --- Start Asynchronous Loading ---
-        Debug.Log($"Starting to load scene: {sceneToLoad}");
+        Debug.Log($"GAME MANAGER: Starting to load scene: {sceneToLoad}");
         AsyncOperation loadOperation = SceneManager.LoadSceneAsync(sceneToLoad, LoadSceneMode.Additive);
 
         // --- Wait for the Scene to Finish Loading ---
@@ -225,11 +230,11 @@ public class GameManager : MonoBehaviour
         if (newScene.IsValid())
         {
             SceneManager.SetActiveScene(newScene);
-            Debug.Log($"Scene '{sceneToLoad}' loaded and set as active.");
+            Debug.Log($"GAME MANAGER: Scene '{sceneToLoad}' loaded and set as active.");
         }
         else
         {
-            Debug.LogError($"Something went wrong. Scene '{sceneToLoad}' could not be found after loading.");
+            Debug.LogError($"GAME MANAGER: Something went wrong. Scene '{sceneToLoad}' could not be found after loading.");
         }
     }
    

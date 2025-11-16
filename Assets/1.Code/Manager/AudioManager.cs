@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using DG.Tweening;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -37,6 +39,9 @@ public class AudioManager : MonoBehaviour
     [Range(-80, 20)]
     public int neinGartenAttenuation = 0;
     
+    
+    //Master
+    private float masterVolume;
     //StoryPoint Audio
     private bool storyPointIsPlaying;
     private AudioPlayer currentStoryPointAudioPlayer;
@@ -61,7 +66,8 @@ public class AudioManager : MonoBehaviour
 
     void Start()
     { 
-       changeVolume();
+        audioMixer.GetFloat("MasterVol", out masterVolume);
+        changeVolume();
     }
 
     void changeVolume()
@@ -138,6 +144,19 @@ public class AudioManager : MonoBehaviour
         storyAudioPlayerObject.GetComponent<AudioPlayer>().PlayAudio(clip);
         waitForAudioEndTime = storyAudioPlayerObject.GetComponent<AudioSource>().clip.length + 1f;
         */
+    }
+
+    public IEnumerator FadeAwayAudio(float fadeTime = 2f, bool resetAfter = true)
+    {
+        audioMixer.GetFloat("MasterVol", out masterVolume);
+        audioMixer.DOSetFloat("MasterVol", -80f, fadeTime);
+        yield return new WaitForSeconds(fadeTime);
+        
+    }
+
+    public void ResetMasterVolume()
+    {
+        audioMixer.SetFloat("MasterVol", masterVolume);
     }
 
 }

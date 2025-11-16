@@ -187,6 +187,8 @@ AudioMixerController:
     name: EmbryoVol
   - guid: a5bc8c59dcf0ec041900bdcd37a7ee8a
     name: GartenVol
+  - guid: edcaff6968e434649bcfdb32765d17fb
+    name: MasterVol
   - guid: 27bec47e986b6a84a9d3f897506dba8d
     name: NeinGartenVol
   - guid: 80845d95695d34144ad601cbcf280ccf

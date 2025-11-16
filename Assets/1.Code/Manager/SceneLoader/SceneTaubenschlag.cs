@@ -10,12 +10,24 @@ public class SceneTaubenschlag : SceneLoader
     [SerializeField] private GameObject[] chapterHolderObjects;
     [SerializeField] private GameObject[] playerController;
     [Header("Special Story Objects")]
+    [SerializeField] private TextMeshPro taubenschlagPortalText;
+    [SerializeField] private StoryPortal taubenschlagPortal;
+    [SerializeField] private TextMeshPro tricksterPortalText;
+    [SerializeField] private StoryPortal tricksterPortal;
+    [SerializeField] private BoxCollider tricksterPortalBlocker;
+    [Header("Text Files")]
+    [SerializeField] private TextFile scanTextFileSingular;
+    [SerializeField] private TextFile scanTextFilePlural;
  
     
     private List<Transform> playerStarts = new List<Transform>();
     private List<ChapterHolder> chapterHolders =  new List<ChapterHolder>();
 
     private int chapterIndex;
+    
+    //Text
+    private string scanTextSingular = "";
+    private string scanTextPlural = "";
 
     //This is called by the GameManager on SceneLoad
     //This returns the currently active Player
@@ -50,45 +62,53 @@ public class SceneTaubenschlag : SceneLoader
             if (chapterHolderObject.activeSelf) chapterHolderObject.SetActive(false);
         }
 
-        //Player Controller Setup
-        Debug.Log("Initializing PlayerController");
-        GameObject currentPlayerController = null;
+        //Language
+        if (GlobalProgress.english)
+        {
+            scanTextSingular = scanTextFileSingular.textEng;
+            scanTextPlural = scanTextFilePlural.textEng;
+        }
+        else
+        {
+            scanTextSingular = scanTextFileSingular.text;
+            scanTextPlural = scanTextFilePlural.text;
+        }
         
+        // Activate current ChapterHolder
+        chapterHolderObjects[chapterIndex].SetActive(true);
+        
+        //Specific Scene Setup
+        int controllerIndex = -1;
         switch (chapter)
         {
             case Chapter.TAUBENSCHLAG:
-                currentPlayerController = playerController[0];
+                taubenschlagPortal.DisablePortal();
+                taubenschlagPortalText.text = $"{GlobalProgress.GetStorypointCounter(Chapter.TAUBENSCHLAG)} {scanTextPlural}";
+                
+                controllerIndex = 0;
                 chapterIndex = 0;
                 break;
                 
             case Chapter.TRICKSTER:
-                currentPlayerController = playerController[1];
+                tricksterPortal.DisablePortal();
+                tricksterPortalText.text = $"{GlobalProgress.GetStorypointCounter(Chapter.TRICKSTER)} {scanTextPlural}";
+                tricksterPortalBlocker.isTrigger = false;
+                
+                controllerIndex = 2;
                 chapterIndex = 1;
                 break;
            
         }
         
-
-        if (currentPlayerController != null)
-        {
-            currentPlayerController.transform.position = playerStarts[chapterIndex].position;
-            currentPlayerController.transform.rotation = playerStarts[chapterIndex].rotation;
+        GameObject nextController = Instantiate(GameManager.instance.playerController[controllerIndex]);
+        nextController.transform.position = playerStarts[chapterIndex].position;
+        nextController.transform.rotation = playerStarts[chapterIndex].rotation;
             
-            currentPlayerController.GetComponent<BasePlayerController>().InitController();
-            currentPlayerController.GetComponent<BasePlayerController>().LockInput();
-            currentPlayerController.SetActive(true);
-        }
-        else 
-        {
-            Debug.LogError("No player controller found.");
-        }
-        
-        
-        // Activate current ChapterHolder
-        chapterHolderObjects[chapterIndex].SetActive(true);
-        
-        return currentPlayerController;
-        
+        nextController.GetComponent<BasePlayerController>().InitController();
+        nextController.GetComponent<BasePlayerController>().LockInput();
+        nextController.SetActive(true);
+            
+        return nextController;
     }
 
     public override void ShowStoryPoints(bool gardenSwitch = false)
@@ -117,9 +137,52 @@ public class SceneTaubenschlag : SceneLoader
 
     public override void SpecificSceneInteraction(Chapter chapter, int internalChapterProgress = 0)
     {
+        int storyPointCount = 0;
+        
         switch (chapter)
         {
-           
+            case Chapter.TAUBENSCHLAG:
+                storyPointCount = GlobalProgress.GetStorypointCounter(Chapter.TAUBENSCHLAG);
+                
+                if (internalChapterProgress < storyPointCount)
+                {
+                    if (storyPointCount - internalChapterProgress == 1)
+                        taubenschlagPortalText.text = $"{storyPointCount - internalChapterProgress} {scanTextSingular}";
+                    
+                    else 
+                        taubenschlagPortalText.text = $"{storyPointCount - internalChapterProgress} {scanTextPlural}";
+                }
+                else if (internalChapterProgress == storyPointCount)
+                {
+                    Debug.Log("Taubenschlag: All necessary story points scanned. Portal opened.");
+                    taubenschlagPortal.EnablePortal();
+                    taubenschlagPortalText.text = "";
+                }
+                break;
+            
+            case Chapter.TRICKSTER:
+                storyPointCount = GlobalProgress.GetStorypointCounter(Chapter.TRICKSTER);
+                
+                if (internalChapterProgress < storyPointCount)
+                {
+                    if (storyPointCount - internalChapterProgress == 1)
+                        tricksterPortalText.text = $"{storyPointCount - internalChapterProgress} {scanTextSingular}";
+                    
+                    else 
+                        tricksterPortalText.text = $"{storyPointCount - internalChapterProgress} {scanTextPlural}";
+                }
+                else if (internalChapterProgress == storyPointCount)
+                {
+                    Debug.Log("Trickster: All necessary story points scanned. Portal opened.");
+                    tricksterPortal.EnablePortal();
+                    tricksterPortalText.text = "";
+                    tricksterPortalBlocker.isTrigger = true;
+                }
+                break;
+            
+            default:
+                Debug.LogWarning("Specific scene interaction requested falsely. Chapter: " + chapter);
+                break;
         }
     }
     

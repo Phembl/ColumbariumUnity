@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using COLUMBARIUM.Global;
+using DG.Tweening;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -10,21 +11,33 @@ public class SceneGarten : SceneLoader
     [SerializeField] private GameObject[] chapterHolderObjects;
     [SerializeField] private GameObject[] playerController;
     [Header("Special Story Objects")]
-    [SerializeField] private TextMeshPro taubenschlagDoorText;
-    [SerializeField] private GameObject taubenschlagBlocker;
-    [SerializeField] private TextFile taubenschlagCounterTextSingular;
-    [SerializeField] private TextFile taubenschlagCounterTextPlural;
+    [SerializeField] private StoryPortal gartenPortal;
+    [SerializeField] private TextMeshPro gartenPortalText;
+    [SerializeField] private GameObject gartenDoorBlocker;
+    [SerializeField] private StoryPortal gartenInversePortal;
+    [SerializeField] private TextMeshPro gartenInversePortalText;
+    [SerializeField] private StoryPortal pigeonPortal;
+    [SerializeField] private TextMeshPro pigeonPortalText;
+    [Header("Text Files")]
+    [SerializeField] private TextFile scanTextFileSingular;
+    [SerializeField] private TextFile scanTextFilePlural;
+    [Header("Player controller")]
     
     private List<Transform> playerStarts = new List<Transform>();
     private List<ChapterHolder> chapterHolders =  new List<ChapterHolder>();
 
     private int chapterIndex;
+    
+    //Text
+    private string scanTextSingular = "";
+    private string scanTextPlural = "";
+
 
     //This is called by the GameManager on SceneLoad
     //This returns the currently active Player
     public override GameObject InitChapterOnLoad(Chapter chapter)
     {
-        Debug.Log("Initializing Garten Chapters");
+        Debug.Log("SCENE MANAGER: Initializing Garten Chapters");
         
         foreach (var chapterHolderObject in chapterHolderObjects)
         {
@@ -32,14 +45,14 @@ public class SceneGarten : SceneLoader
 
             if (nextChapterHolder == null)
             {
-                Debug.LogError("Chapter Holder not found. Aborting Load Process");
+                Debug.LogError("SCENE MANAGER: Chapter Holder not found. Aborting Load Process");
                 return null;
             }
             
                 
             if (nextChapterHolder.storyPoints.Length > 0)
             {
-                Debug.Log("Resetting StoryPoints");
+                Debug.Log("Resetting StoryPoints:" + nextChapterHolder.gameObject.name);
                 foreach (GameObject storyPoint in nextChapterHolder.storyPoints)
                 {
                     storyPoint.GetComponent<StoryPoint>().Reset();
@@ -52,61 +65,87 @@ public class SceneGarten : SceneLoader
             
             if (chapterHolderObject.activeSelf) chapterHolderObject.SetActive(false);
         }
-
-        //Player Controller Setup
-        Debug.Log("Initializing PlayerController");
-        GameObject currentPlayerController = null;
+        
+        //Language
+        if (GlobalProgress.english)
+        {
+            scanTextSingular = scanTextFileSingular.textEng;
+            scanTextPlural = scanTextFilePlural.textEng;
+        }
+        else
+        {
+            scanTextSingular = scanTextFileSingular.text;
+            scanTextPlural = scanTextFilePlural.text;
+        }
+        
+        //Specific Scene Setup
+        int controllerIndex = -1;
         
         switch (chapter)
         {
             case Chapter.NICHTS:
-                currentPlayerController = playerController[0];
+                gartenDoorBlocker.SetActive(true);
+                gartenPortal.DisablePortal();
+                gartenPortalText.text = $"{GlobalProgress.GetStorypointCounter(Chapter.GARTEN)} {scanTextPlural}";
+                
+                controllerIndex = 0;
                 chapterIndex = 0;
                 
                 break;
                 
             case Chapter.GARTEN:
-                currentPlayerController = playerController[0];
+                gartenDoorBlocker.SetActive(true);
+                gartenPortal.DisablePortal();
+                gartenPortalText.text = $"{GlobalProgress.GetStorypointCounter(Chapter.GARTEN)} {scanTextPlural}";
+                
+                controllerIndex = 0;
                 chapterIndex = 1;
                 break;
             
-            case Chapter.GARTEN_ALTERNATIVE:
-                currentPlayerController = playerController[0];
+            case Chapter.GARTEN_INVERSE:
+                gartenInversePortal.DisablePortal();
+                gartenInversePortalText.text = $"{GlobalProgress.GetStorypointCounter(Chapter.GARTEN)} {scanTextPlural}";
+               
+                controllerIndex = 0;
                 chapterIndex = 2;
                 break;
             
-            case Chapter.PIDGEON:
-                currentPlayerController = playerController[1];
+            case Chapter.PIGEON:
+                pigeonPortal.DisablePortal();
+                pigeonPortalText.text = $"{GlobalProgress.GetStorypointCounter(Chapter.GARTEN)} {scanTextPlural}";
+               
+                controllerIndex = 1;
                 chapterIndex = 3;
                 break;
             
             case Chapter.FAREWELL:
-            
-
+                controllerIndex = 99;
+                chapterIndex = 4;
                 break;
         }
-        
-
-        if (currentPlayerController != null)
-        {
-            currentPlayerController.transform.position = playerStarts[chapterIndex].position;
-            currentPlayerController.transform.rotation = playerStarts[chapterIndex].rotation;
-            
-            currentPlayerController.GetComponent<BasePlayerController>().InitController();
-            currentPlayerController.GetComponent<BasePlayerController>().LockInput();
-            currentPlayerController.SetActive(true);
-        }
-        else 
-        {
-            Debug.LogError("No player controller found.");
-        }
-        
         
         // Activate current ChapterHolder
         chapterHolderObjects[chapterIndex].SetActive(true);
         if (chapterIndex == 0) chapterHolderObjects[1].SetActive(true); //When Nichts is loaded it also already activates the Garden Objects (they are still invis)
         
-        return currentPlayerController;
+        //Spawn Controller
+        if (chapter != Chapter.FAREWELL) 
+        {
+            GameObject nextController = Instantiate(GameManager.instance.playerController[controllerIndex]);
+            nextController.transform.position = playerStarts[chapterIndex].position;
+            nextController.transform.rotation = playerStarts[chapterIndex].rotation;
+            
+            nextController.GetComponent<BasePlayerController>().InitController();
+            nextController.GetComponent<BasePlayerController>().LockInput();
+            nextController.SetActive(true);
+            
+            return nextController;
+        }
+
+        else //Farewell doesnt need controller
+        {
+            return null;
+        }
         
     }
 
@@ -124,7 +163,7 @@ public class SceneGarten : SceneLoader
         
         if (chapterHolders[chapterIndex].storyPoints.Length > 0)
         {
-            Debug.Log("Showing StoryPoints");
+            Debug.Log("SCENE MANAGER: Showing StoryPoints: " + chapterHolders[chapterIndex].gameObject.name);
             
             foreach (GameObject storyPoint in chapterHolders[chapterIndex].storyPoints)
             {
@@ -136,41 +175,78 @@ public class SceneGarten : SceneLoader
 
     public override void SpecificSceneInteraction(Chapter chapter, int internalChapterProgress = 0)
     {
+        int storyPointCount = 0;
+        
         switch (chapter)
         {
             case Chapter.GARTEN:
-                int gardenStoryCount = GlobalProgress.GetStorypointCounter(3);
+                storyPointCount = GlobalProgress.GetStorypointCounter(Chapter.GARTEN);
                 
-                if (internalChapterProgress < gardenStoryCount) //Chapter not finished
+                if (internalChapterProgress < storyPointCount) //Chapter not finished
                 {
-                    string scanTextSingular = "";
-                    string scanTextPlural = "";
-
-                    if (GlobalProgress.english)
-                    {
-                        scanTextSingular = taubenschlagCounterTextSingular.textEng;
-                        scanTextPlural = taubenschlagCounterTextPlural.textEng;
-                    }
-                    else
-                    {
-                        scanTextSingular = taubenschlagCounterTextSingular.text;
-                        scanTextPlural = taubenschlagCounterTextPlural.text;
-                    }
-                        
-                    if (gardenStoryCount - internalChapterProgress == 1)
-                        taubenschlagDoorText.text = $"{gardenStoryCount - internalChapterProgress} {scanTextSingular}";
+                    
+                    if (storyPointCount - internalChapterProgress == 1)
+                        gartenPortalText.text = $"{storyPointCount - internalChapterProgress} {scanTextSingular}";
                     
                     else 
-                        taubenschlagDoorText.text = $"{gardenStoryCount - internalChapterProgress} {scanTextPlural}";
+                        gartenPortalText.text = $"{storyPointCount - internalChapterProgress} {scanTextPlural}";
                 }
-                else if (internalChapterProgress == gardenStoryCount) //All necessary story Points found
+                
+                else if (internalChapterProgress == storyPointCount) //All necessary story Points found
                 {
-                    Debug.Log("Taubenschlag unlocked");
-                    taubenschlagBlocker.SetActive(false);
-                    taubenschlagDoorText.text = "";
+                    Debug.Log("Garten: All necessary story points scanned. Portal opened.");
+                    gartenDoorBlocker.SetActive(false);
+                    gartenPortal.EnablePortal();
+                    gartenPortalText.text = "";
                 }
 
                 break;
+            
+            case Chapter.GARTEN_INVERSE:
+                storyPointCount = GlobalProgress.GetStorypointCounter(Chapter.GARTEN_INVERSE);
+                
+                if (internalChapterProgress < storyPointCount)
+                {
+                    if (storyPointCount - internalChapterProgress == 1)
+                        gartenInversePortalText.text = $"{storyPointCount - internalChapterProgress} {scanTextSingular}";
+                    
+                    else 
+                        gartenInversePortalText.text = $"{storyPointCount - internalChapterProgress} {scanTextPlural}";
+                }
+                else if (internalChapterProgress == storyPointCount)
+                {
+                    Debug.Log("Garten Inverse: All necessary story points scanned. Portal opened.");
+                    gartenInversePortal.EnablePortal();
+                    gartenInversePortalText.text = "";
+                }
+                break;
+            
+
+            
+            case Chapter.PIGEON:
+                storyPointCount = GlobalProgress.GetStorypointCounter(Chapter.PIGEON);
+                
+                if (internalChapterProgress < storyPointCount)
+                {
+                    if (storyPointCount - internalChapterProgress == 1)
+                        pigeonPortalText.text = $"{storyPointCount - internalChapterProgress} {scanTextSingular}";
+                    
+                    else 
+                        pigeonPortalText.text = $"{storyPointCount - internalChapterProgress} {scanTextPlural}";
+                }
+                else if (internalChapterProgress == storyPointCount)
+                {
+                    Debug.Log("Pigeon: All necessary story points scanned. Portal opened.");
+                    pigeonPortal.EnablePortal();
+                    pigeonPortalText.text = "";
+                }
+                break;
+            
+            default:
+                Debug.LogWarning("Specific scene interaction requested falsely. Chapter: " + chapter);
+                break;
+            
+            
         }
     }
     
