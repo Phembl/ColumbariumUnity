@@ -199,4 +199,11 @@ public class BirdPlayerController : BasePlayerController
         // Apply the final velocity
         rb.linearVelocity = finalVelocity;
     }
+    
+    protected override void UpdateSpecificSettings(float newMoveSpeed, float birdRiseSpeed = 0f, float birdGLideSpeed = 0f, float birdGravityPull = 0f)
+    {
+        riseSpeed = birdRiseSpeed;
+        glideSpeed = birdGLideSpeed;
+        gravityPull = birdGravityPull;
+    }
 }

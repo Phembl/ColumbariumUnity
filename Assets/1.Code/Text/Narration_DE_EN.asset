@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef8ae1b76ad3c72409dc15bf025329cd, type: 3}
+  m_Name: Narration_DE_EN
+  m_EditorClassIdentifier: 
+  text:
+  - "\xBBOver a seven-day stint, we follow a character named LORD God as he creates
+    the heavens, the earth, and everything in between [\u2026]. He then goes on to
+    form [\u2026] a male human.<br><br> After breathing life into this man\u2019s
+    nostrils, he hovers eastward to Eden, not too far from Ethiopia. There, LORD
+    God plants [\u2026] a [\u2026] colourful garden with birds and bees, flowers
+    and trees. [\u2026]\xAB"
+  - "In this heavenly abode of great beauty, he drops the unnamed man, for him \u203Ato
+    dress it and to keep it\u2039 <br>(Genesis 2:15).[\u2026] <br><br>He makes the
+    gardener \u203Aan help\u2039 from the man\u2019s rib [\u2026]. From then on,
+    the gardener is referred to as Adam and accompanied by a female assistant gardener
+    who, we later learn, is called Eve.\xAB<br><br> \u2013 Patricia de Vries (Against
+    Gardening, 2021) \u2013"
+  - "\xBBAfter all, there is only ever a Garden of Eden for as long as there is a
+    gardener who tends to it.\xAB<br><br>\u2013 Patricia de Vries (Against Gardening,
+    2021) \u2013"

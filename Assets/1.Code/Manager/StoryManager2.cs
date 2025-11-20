@@ -50,12 +50,14 @@ public class StoryManager2 : MonoBehaviour
     public void StartChapter(Chapter chapter, bool afterSceneLoad = false, GameObject currentPlayer = null, SceneLoader currentSceneLoader = null)
     {
         
-        
         currentChapter = chapter;
         internalChapterProgress = 0;
         
         player = currentPlayer;
-        if (player!= null) playerController = player.GetComponent<BasePlayerController>();
+        if (player!= null && chapter != Chapter.FAREWELL) 
+        {
+            playerController = player.GetComponent<BasePlayerController>();
+        }
         
         sceneLoader = currentSceneLoader;
         
@@ -137,6 +139,7 @@ public class StoryManager2 : MonoBehaviour
         InteractionManager.instance.ActivateInteraction(true);
         
         cinematicVideoPlayer.clip = startScreenVideo;
+        cinematicAudioPlayer.volume = 1f;
         cinematicVideoPlayer.isLooping = true;
         cinematicVideoPlayer.SetTargetAudioSource(0, cinematicAudioPlayer);
         cinematicVideoPlayer.Prepare();
@@ -145,10 +148,13 @@ public class StoryManager2 : MonoBehaviour
         {
             yield return null; // Wait for the next frame
         }
+
         
         cinematicVideoPlayer.Play();
-        
+        yield return new WaitForSeconds(1f);
         yield return StartCoroutine(UIManager.instance.UseBlackScreen(false,true, true));
+        yield return new WaitForSeconds(1.5f);
+        StartCoroutine(UIManager.instance.ShowInstructions(0));
         
         //Activate Start Button
         readyForStartButton = true;
@@ -159,8 +165,11 @@ public class StoryManager2 : MonoBehaviour
         
         startButtonPressed = false;
         readyForStartButton = false;
+
+        UIManager.instance.HideStartText();
+        cinematicAudioPlayer.DOFade(0f, SettingsManager.instance.blackScreenFadeTime);
         
-        cinematicAudioPlayer.DOFade(0f, GameManager.instance.GetFadeTime());
+       
         yield return StartCoroutine(UIManager.instance.UseBlackScreen(true,true));
 
         yield return new WaitForSeconds(0.5f);
@@ -176,6 +185,8 @@ public class StoryManager2 : MonoBehaviour
     {
         MenuManager.instance.MakeMenuNotUsable();
         UIManager.instance.LoadIcon(false);
+        InteractionManager.instance.ActivateInteraction(true);
+        readyForSkipButton = true;
         
         yield return new WaitForSeconds(2f);
 
@@ -204,16 +215,16 @@ public class StoryManager2 : MonoBehaviour
     IEnumerator Chapter_Nichts()
     {
         
-        MenuManager.instance.MakeMenuUsable();
         InteractionManager.instance.ActivateInteraction(false);
 
         playerController.UnlockInput();
         
         yield return StartCoroutine(UIManager.instance.UseBlackScreen(false,true, true));
+        MenuManager.instance.MakeMenuUsable();
         
         sceneLoader.ShowStoryPoints();
         
-        yield return StartCoroutine(UIManager.instance.ShowControllerText());
+        yield return StartCoroutine(UIManager.instance.ShowInstructions(2, true));
         UIManager.instance.ShowScanCounter(Chapter.NICHTS, false);
 
     }
@@ -223,11 +234,12 @@ public class StoryManager2 : MonoBehaviour
         
         if (afterSceneLoad)
         {
-            MenuManager.instance.MakeMenuUsable();
             InteractionManager.instance.ActivateInteraction(false);
             
             playerController.UnlockInput();
+            
             yield return StartCoroutine(UIManager.instance.UseBlackScreen(false,true, true));
+            MenuManager.instance.MakeMenuUsable();
             sceneLoader.ShowStoryPoints();
         }
 
@@ -242,12 +254,12 @@ public class StoryManager2 : MonoBehaviour
 
     IEnumerator Chapter_Garten_Inverese()
     {
-        MenuManager.instance.MakeMenuUsable();
         InteractionManager.instance.ActivateInteraction(false);
         
         playerController.UnlockInput();
         yield return StartCoroutine(UIManager.instance.UseBlackScreen(false,true, true));
-        sceneLoader.ShowStoryPoints();
+        MenuManager.instance.MakeMenuUsable();
+        sceneLoader.ShowStoryPoints(false, true);
         
         UIManager.instance.ShowScanCounter(Chapter.GARTEN_INVERSE, false);
     }
@@ -260,7 +272,7 @@ public class StoryManager2 : MonoBehaviour
         yield return new WaitForSeconds(2f);
         
         //Show Question 
-        UIManager.instance.ShowNarrationText(3); //Show Text
+        UIManager.instance.ShowQuestionText(1); //Show Text
         yield return new WaitForSeconds(0.5f);
         
         //Show Answers and wait for selection
@@ -276,7 +288,7 @@ public class StoryManager2 : MonoBehaviour
                 break;
             
             case 2:
-                StartCoroutine(GameManager.instance.SwitchToScene(Chapter.GARTEN_INV_QUESTION, "Garten", true));
+                StartCoroutine(GameManager.instance.SwitchToScene(Chapter.CREDITS));
                 break;
         }
         
@@ -284,12 +296,13 @@ public class StoryManager2 : MonoBehaviour
     
     IEnumerator Chapter_Taubenschlag()
     {
-        MenuManager.instance.MakeMenuUsable();
+        
         InteractionManager.instance.ActivateInteraction(false);
 
         playerController.UnlockInput();
         
         yield return StartCoroutine(UIManager.instance.UseBlackScreen(false,true, true));
+        MenuManager.instance.MakeMenuUsable();
         
         sceneLoader.ShowStoryPoints();
         UIManager.instance.ShowScanCounter(Chapter.TAUBENSCHLAG, false);
@@ -304,7 +317,7 @@ public class StoryManager2 : MonoBehaviour
         yield return new WaitForSeconds(2f);
         
         //Show Question 
-        UIManager.instance.ShowNarrationText(2); //Show Text
+        UIManager.instance.ShowQuestionText(0); //Show Text
         yield return new WaitForSeconds(0.5f);
         
         float audioLength = AudioManager.instance.PlayNarrationAudio(2); //Play Audio
@@ -323,7 +336,7 @@ public class StoryManager2 : MonoBehaviour
                 break;
             
             case 2:
-                StartCoroutine(GameManager.instance.SwitchToScene(Chapter.CREDITS));
+                StartCoroutine(GameManager.instance.SwitchToScene(Chapter.GARTEN_INVERSE, "Garten", true));
                 break;
         }
 
@@ -331,13 +344,15 @@ public class StoryManager2 : MonoBehaviour
     
     IEnumerator Chapter_Pigeon()
     {
-        MenuManager.instance.MakeMenuUsable();
         InteractionManager.instance.ActivateInteraction(false);
         
         playerController.UnlockInput();
+        
         yield return StartCoroutine(UIManager.instance.UseBlackScreen(false,true, true));
+        MenuManager.instance.MakeMenuUsable();
         sceneLoader.ShowStoryPoints();
         
+        yield return StartCoroutine(UIManager.instance.ShowInstructions(3, true));
         UIManager.instance.ShowScanCounter(Chapter.PIGEON, false);
     }
     
@@ -349,7 +364,7 @@ public class StoryManager2 : MonoBehaviour
         yield return new WaitForSeconds(2f);
         
         //Show Question 
-        UIManager.instance.ShowNarrationText(4); //Show Text
+        UIManager.instance.ShowQuestionText(2); //Show Text
         yield return new WaitForSeconds(0.5f);
         
         float audioLength = AudioManager.instance.PlayNarrationAudio(3); //This is 3 because Garten_Invert has no audio
@@ -383,8 +398,11 @@ public class StoryManager2 : MonoBehaviour
     {
         MenuManager.instance.MakeMenuNotUsable();
         InteractionManager.instance.ActivateInteraction(false);
+        InteractionManager.instance.ActivateInteraction(true);
+        readyForSkipButton = true;
         
         cinematicVideoPlayer.clip = embryoVideo;
+        cinematicAudioPlayer.volume = 1f;
         cinematicVideoPlayer.isLooping = false;
         cinematicVideoPlayer.SetTargetAudioSource(0, cinematicAudioPlayer);
         cinematicVideoPlayer.Prepare();
@@ -400,7 +418,7 @@ public class StoryManager2 : MonoBehaviour
         Debug.Log("Video Wait Time: " + waitTime);
         yield return new WaitForSeconds(waitTime);
         
-        cinematicAudioPlayer.DOFade(0f, GameManager.instance.GetFadeTime());
+        cinematicAudioPlayer.DOFade(0f, SettingsManager.instance.blackScreenFadeTime);
         yield return StartCoroutine(UIManager.instance.UseBlackScreen(true,true));
 
         yield return new WaitForSeconds(0.5f);
@@ -414,17 +432,60 @@ public class StoryManager2 : MonoBehaviour
     
     IEnumerator Chapter_Farewell()
     {
-        yield return new WaitForEndOfFrame();
+        MenuManager.instance.MakeMenuNotUsable();
+        //UIManager.instance.LoadIcon(false);
+        InteractionManager.instance.ActivateInteraction(true);
+        readyForSkipButton = true;
+        
+        StartCoroutine(UIManager.instance.UseBlackScreen(false,true, true));
+
+        float targetX = player.transform.position.x + 300f;
+        player.transform.DOMoveX(targetX, 120f).SetEase(Ease.InQuad);
+        yield return new WaitForSeconds(4f);
+        
+        float audioLength = AudioManager.instance.PlayNarrationAudio(4); //Play Audio
+        yield return new WaitForSeconds(audioLength + 7f);
+        
+        //audioLength = AudioManager.instance.PlayNarrationAudio(5); //Play Audio
+        yield return new WaitForSeconds(audioLength + 30f);
+        
+        yield return StartCoroutine(UIManager.instance.UseBlackScreen(true,true));
+        yield return new WaitForSeconds(1f);
+        
+        StartCoroutine(GameManager.instance.SwitchToScene(Chapter.EPILOG));
     }
     
     IEnumerator Chapter_Epilog()
     {
-        yield return new WaitForEndOfFrame();
+        MenuManager.instance.MakeMenuNotUsable();
+        UIManager.instance.LoadIcon(false);
+        InteractionManager.instance.ActivateInteraction(true);
+        readyForSkipButton = true;
+        
+        yield return new WaitForSeconds(2f);
+
+        UIManager.instance.ShowNarrationText(2); //Show Text
+        yield return new WaitForSeconds(0.5f);
+        
+        float audioLength = AudioManager.instance.PlayNarrationAudio(6); //Play Audio
+        yield return new WaitForSeconds(audioLength - 1f);
+
+        UIManager.instance.HideNarrationText();
+        yield return new WaitForSeconds(4f);
+        
+        StartCoroutine(GameManager.instance.SwitchToScene(Chapter.CREDITS));
     }
     
     IEnumerator Chapter_Credits()
     {
-        yield return new WaitForEndOfFrame();
+        UIManager.instance.LoadIcon(false);
+        InteractionManager.instance.ActivateInteraction(true);
+        readyForSkipButton = true;
+        
+        yield return StartCoroutine(UIManager.instance.ShowCredits());
+        yield return new WaitForSeconds(1f);
+        
+        GameManager.instance.Restart();
     }
     
     #endregion
@@ -439,6 +500,7 @@ public class StoryManager2 : MonoBehaviour
         {
             case Chapter.NICHTS:
                 if (isPortal) StartChapter(Chapter.GARTEN, false, player, sceneLoader);
+                else UIManager.instance.ShowScanCounter(Chapter.NICHTS, true, internalChapterProgress);
                 break;
             
             case Chapter.GARTEN:
@@ -566,33 +628,75 @@ public class StoryManager2 : MonoBehaviour
     //Interaction Tracking
     private bool readyForStartButton;
     private bool readyForSubmitButton;
+    private bool readyForSkipButton;
+    
     private bool startButtonPressed;
     private bool submitButtonPressed;
+
+    private int skipTracker;
+   
     
     private void OnEnable()
     {
-        InteractionManager.StartButtonPressed += PressStartButton;
+        InteractionManager.PauseButtonPressed += PressPauseButton;
         InteractionManager.SubmitButtonPressed += PressSubmitButton;
+        InteractionManager.StartButtonPressed += PressStartButton;
+        InteractionManager.SkipButtonPressed += PressSkipButton;
     }
 
     private void OnDisable()
     {
-        InteractionManager.StartButtonPressed -= PressStartButton;
+        InteractionManager.PauseButtonPressed -= PressPauseButton;
         InteractionManager.SubmitButtonPressed -= PressSubmitButton;
+        InteractionManager.StartButtonPressed -= PressStartButton;
+        InteractionManager.SkipButtonPressed -= PressSkipButton;
     }
     
-    void PressStartButton()
+    void PressPauseButton()
     {
-        if(!readyForStartButton) return;
+        //Doesnt do anything here
+       
         
-        startButtonPressed = true;
     }
-
+    
     void PressSubmitButton()
     {
         if(!readyForSubmitButton) return;
         
         submitButtonPressed = true;
+    }
+
+    void PressSkipButton()
+    {
+        if (!readyForSkipButton)  return;
+
+        if (skipTracker == 0)
+        {
+            StartCoroutine(UIManager.instance.ShowInstructions(1, true));
+            skipTracker++;
+            StartCoroutine(ResetSkipTracker());
+        }
+        else
+        {
+            readyForSkipButton = false;
+            skipTracker = 0;
+            SkipChapter(); //This is only active in cinematic chapters
+        }
+        
+        
+    }
+
+    IEnumerator ResetSkipTracker()
+    {
+        yield return new WaitForSeconds(6f);
+        skipTracker = 0;
+    }
+
+    void PressStartButton()
+    {
+        if(!readyForStartButton) return;
+        
+        startButtonPressed = true;
     }
 
     #endregion
@@ -619,8 +723,54 @@ public class StoryManager2 : MonoBehaviour
         
         //Wait for Answer selection
         yield return new WaitUntil(() => submitButtonPressed);
+        submitButtonPressed = false;
         readyForSubmitButton = false;
         InteractionManager.instance.ActivateInteraction(false);
+    }
+    
+    void SkipChapter()
+    {
+        EndChapterEarly();
+
+        switch (currentChapter)
+        {
+            case Chapter.PROLOG:
+                Debug.Log("StoryManager: Skip Prolog");
+                StartCoroutine(GameManager.instance.SwitchToScene(Chapter.NICHTS, "Garten", true));
+                break;
+            
+            case Chapter.EMBRYO:
+                Debug.Log("StoryManager: Skip Embryo");
+                StartCoroutine(GameManager.instance.SwitchToScene(Chapter.FAREWELL, "Garten", true));
+                break;
+            
+            case Chapter.FAREWELL:
+                Debug.Log("StoryManager: Skip Farewell");
+                StartCoroutine(GameManager.instance.SwitchToScene(Chapter.EPILOG));
+                break;
+            
+            case Chapter.EPILOG:
+                Debug.Log("StoryManager: Skip Epilog");
+                StartCoroutine(GameManager.instance.SwitchToScene(Chapter.CREDITS));
+                break;
+            
+            case Chapter.CREDITS:
+                Debug.Log("StoryManager: Skip Credits");
+                GameManager.instance.Restart();
+                break;
+            
+            default:
+                Debug.Log("CHAPTER INVALID SKIP");
+                break;
+                
+        }
+    }
+
+    public void EndChapterEarly()
+    {
+        StopCoroutine(currentChapterCoroutine);
+        AudioManager.instance.StopNarrationAudio();
+        cinematicVideoPlayer.Stop();
     }
     
     #endregion

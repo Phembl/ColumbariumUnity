@@ -16,14 +16,16 @@ public class SceneTaubenschlag : SceneLoader
     [SerializeField] private StoryPortal tricksterPortal;
     [SerializeField] private BoxCollider tricksterPortalBlocker;
     [Header("Text Files")]
-    [SerializeField] private TextFile scanTextFileSingular;
-    [SerializeField] private TextFile scanTextFilePlural;
+    [SerializeField] private TextHolder[] scanTextHolders;
  
     
     private List<Transform> playerStarts = new List<Transform>();
     private List<ChapterHolder> chapterHolders =  new List<ChapterHolder>();
 
     private int chapterIndex;
+    
+    //Settings
+    private bool english;
     
     //Text
     private string scanTextSingular = "";
@@ -35,6 +37,21 @@ public class SceneTaubenschlag : SceneLoader
     {
         Debug.Log("Initializing Taubenschlag Chapters");
         
+        UpdateSettings();
+        
+        //Language
+        if (english)
+        {
+            scanTextSingular = scanTextHolders[1].text[0];
+            scanTextPlural = scanTextHolders[1].text[1];
+        }
+        else
+        {
+            scanTextSingular = scanTextHolders[0].text[0];
+            scanTextPlural = scanTextHolders[0].text[1];
+        }
+        
+        //Register ChapterHolder and Player Starts
         foreach (var chapterHolderObject in chapterHolderObjects)
         {
             ChapterHolder nextChapterHolder = chapterHolderObject.GetComponent<ChapterHolder>();
@@ -62,20 +79,6 @@ public class SceneTaubenschlag : SceneLoader
             if (chapterHolderObject.activeSelf) chapterHolderObject.SetActive(false);
         }
 
-        //Language
-        if (GlobalProgress.english)
-        {
-            scanTextSingular = scanTextFileSingular.textEng;
-            scanTextPlural = scanTextFilePlural.textEng;
-        }
-        else
-        {
-            scanTextSingular = scanTextFileSingular.text;
-            scanTextPlural = scanTextFilePlural.text;
-        }
-        
-        // Activate current ChapterHolder
-        chapterHolderObjects[chapterIndex].SetActive(true);
         
         //Specific Scene Setup
         int controllerIndex = -1;
@@ -100,18 +103,30 @@ public class SceneTaubenschlag : SceneLoader
            
         }
         
-        GameObject nextController = Instantiate(GameManager.instance.playerController[controllerIndex]);
-        nextController.transform.position = playerStarts[chapterIndex].position;
-        nextController.transform.rotation = playerStarts[chapterIndex].rotation;
+        // Activate current ChapterHolder
+        chapterHolderObjects[chapterIndex].SetActive(true);
+        
+        Vector3 nextSpawnPos = playerStarts[chapterIndex].position;
+        Quaternion nextSpawnRot = playerStarts[chapterIndex].rotation;
             
-        nextController.GetComponent<BasePlayerController>().InitController();
-        nextController.GetComponent<BasePlayerController>().LockInput();
-        nextController.SetActive(true);
+        return base.SpawnPlayer(controllerIndex, nextSpawnPos, nextSpawnRot, false);
+    }
+    
+    private void UpdateSettings()
+    {
+        switch (SettingsManager.instance.language)
+        {
+            case SettingsManager.Language.German:
+                english = false;
+                break;
             
-        return nextController;
+            case SettingsManager.Language.English:
+                english = true;
+                break;
+        }
     }
 
-    public override void ShowStoryPoints(bool gardenSwitch = false)
+    public override void ShowStoryPoints(bool gardenSwitch = false, bool isInverse = false)
     {
         if (gardenSwitch)
         {

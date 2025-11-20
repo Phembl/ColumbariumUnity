@@ -9,7 +9,6 @@ using DG.Tweening;
 using TMPro;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using VInspector.Libs;
 
 public class GameManager : MonoBehaviour
 {
@@ -44,9 +43,8 @@ public class GameManager : MonoBehaviour
     }
     
     [Header("General")]
-    [SerializeField, Range(1, 5)] private float fadetime = 2f;
-    [SerializeField] private bool english;
-    public float GetFadeTime() => fadetime;
+    //[SerializeField, Range(1, 5)] private float fadetime = 2f;
+    //public float GetFadeTime() => fadetime;
    
 
 
@@ -78,9 +76,23 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        UIManager.instance.InitUI();
-        InteractionManager.instance.InitInteraction();
-        GlobalProgress.english = english;
+        //Set Cursor
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        
+        StartNewGame();
+    }
+
+    public void Restart(bool startWithChapter = false, Chapter newStartChapter = Chapter.STARTSCREEN)
+    {
+        if (startWithChapter)
+        {
+            startChapter = newStartChapter;
+        }
+        else
+        {
+            startNewGame = true;
+        }
         
         StartNewGame();
     }
@@ -88,6 +100,8 @@ public class GameManager : MonoBehaviour
     private void StartNewGame()
     {
         
+        UIManager.instance.InitUI();
+        InteractionManager.instance.InitInteraction();
         //StartCoroutine(UIManager.instance.UseBlackScreen(true));
         
         StoryManager2.instance.InitStoryManager();
@@ -95,6 +109,7 @@ public class GameManager : MonoBehaviour
         if (startNewGame)
         {
             startChapter = Chapter.STARTSCREEN;
+            startNewGame = false;
         }
 
         else
@@ -138,6 +153,8 @@ public class GameManager : MonoBehaviour
     
     public IEnumerator SwitchToScene(Chapter nextChapter, string sceneName = "", bool loadScene = false)
     {
+        UIManager.instance.InitUI();
+        yield return StartCoroutine(UIManager.instance.UseBlackScreen(true, false));
         UIManager.instance.LoadIcon(true);
         
         //Unloads all open Scenes
@@ -145,6 +162,8 @@ public class GameManager : MonoBehaviour
 
         SceneLoader currentSceneloader = null; //Prepare SceneLoader
         GameObject currentPlayerController = null; //Prepare playerController 
+        
+        
         
         //Loads new scene if needed
         if (loadScene)

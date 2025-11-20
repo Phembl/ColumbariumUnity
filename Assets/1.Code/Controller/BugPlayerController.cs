@@ -26,6 +26,11 @@ public class BugPlayerController : BasePlayerController
         rb.linearDamping = 0;
         
     }
+    
+    protected override void UpdateSpecificSettings(float newMoveSpeed, float birdRiseSpeed = 0f, float birdGLideSpeed = 0f, float birdGravityPull = 0f)
+    {
+        walkSpeed = newMoveSpeed;
+    }
 
     /// <summary>
     /// Handles movement physics for bug mode

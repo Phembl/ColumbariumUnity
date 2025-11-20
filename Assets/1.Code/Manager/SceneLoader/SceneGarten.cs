@@ -16,11 +16,14 @@ public class SceneGarten : SceneLoader
     [SerializeField] private GameObject gartenDoorBlocker;
     [SerializeField] private StoryPortal gartenInversePortal;
     [SerializeField] private TextMeshPro gartenInversePortalText;
+    [SerializeField] private MeshRenderer gartenInverseGround;
+    [SerializeField] private MeshRenderer gartenInverseTaubenschlag;
+    [SerializeField] private Material gartenInverseGroundMaterial;
     [SerializeField] private StoryPortal pigeonPortal;
     [SerializeField] private TextMeshPro pigeonPortalText;
+    [SerializeField] private GameObject farewellCamera;
     [Header("Text Files")]
-    [SerializeField] private TextFile scanTextFileSingular;
-    [SerializeField] private TextFile scanTextFilePlural;
+    [SerializeField] private TextHolder[] scanTextHolders;
     [Header("Player controller")]
     
     private List<Transform> playerStarts = new List<Transform>();
@@ -31,6 +34,9 @@ public class SceneGarten : SceneLoader
     //Text
     private string scanTextSingular = "";
     private string scanTextPlural = "";
+    
+    //Settings
+    private bool english;
 
 
     //This is called by the GameManager on SceneLoad
@@ -38,7 +44,23 @@ public class SceneGarten : SceneLoader
     public override GameObject InitChapterOnLoad(Chapter chapter)
     {
         Debug.Log("SCENE MANAGER: Initializing Garten Chapters");
+
+        UpdateSettings();
         
+        //Language
+        if (english)
+        {
+            scanTextSingular = scanTextHolders[1].text[0];
+            scanTextPlural = scanTextHolders[1].text[1];
+        }
+        else
+        {
+            scanTextSingular = scanTextHolders[0].text[0];
+            scanTextPlural = scanTextHolders[0].text[1];
+        }
+        
+        
+        //Register ChapterHolder and Player Starts
         foreach (var chapterHolderObject in chapterHolderObjects)
         {
             ChapterHolder nextChapterHolder = chapterHolderObject.GetComponent<ChapterHolder>();
@@ -61,22 +83,12 @@ public class SceneGarten : SceneLoader
             }
             
             chapterHolders.Add(nextChapterHolder);
-            playerStarts.Add(nextChapterHolder.playerStart.transform);
+            
+            if (nextChapterHolder.playerStart != null) playerStarts.Add(nextChapterHolder.playerStart.transform);
             
             if (chapterHolderObject.activeSelf) chapterHolderObject.SetActive(false);
         }
         
-        //Language
-        if (GlobalProgress.english)
-        {
-            scanTextSingular = scanTextFileSingular.textEng;
-            scanTextPlural = scanTextFilePlural.textEng;
-        }
-        else
-        {
-            scanTextSingular = scanTextFileSingular.text;
-            scanTextPlural = scanTextFilePlural.text;
-        }
         
         //Specific Scene Setup
         int controllerIndex = -1;
@@ -104,7 +116,10 @@ public class SceneGarten : SceneLoader
             
             case Chapter.GARTEN_INVERSE:
                 gartenInversePortal.DisablePortal();
-                gartenInversePortalText.text = $"{GlobalProgress.GetStorypointCounter(Chapter.GARTEN)} {scanTextPlural}";
+                gartenInversePortalText.text = $"{GlobalProgress.GetStorypointCounter(Chapter.GARTEN_INVERSE)} {scanTextPlural}";
+
+                gartenInverseGround.material = gartenInverseGroundMaterial;
+                gartenInverseTaubenschlag.material = gartenInverseGroundMaterial;
                
                 controllerIndex = 0;
                 chapterIndex = 2;
@@ -112,14 +127,15 @@ public class SceneGarten : SceneLoader
             
             case Chapter.PIGEON:
                 pigeonPortal.DisablePortal();
-                pigeonPortalText.text = $"{GlobalProgress.GetStorypointCounter(Chapter.GARTEN)} {scanTextPlural}";
+                pigeonPortalText.text = $"{GlobalProgress.GetStorypointCounter(Chapter.PIGEON)} {scanTextPlural}";
                
                 controllerIndex = 1;
                 chapterIndex = 3;
                 break;
             
             case Chapter.FAREWELL:
-                controllerIndex = 99;
+                gartenDoorBlocker.SetActive(false);
+                controllerIndex = 99; //No controller loaded, Camera is returned directly
                 chapterIndex = 4;
                 break;
         }
@@ -129,27 +145,40 @@ public class SceneGarten : SceneLoader
         if (chapterIndex == 0) chapterHolderObjects[1].SetActive(true); //When Nichts is loaded it also already activates the Garden Objects (they are still invis)
         
         //Spawn Controller
-        if (chapter != Chapter.FAREWELL) 
+        if (chapter != Chapter.FAREWELL)
         {
-            GameObject nextController = Instantiate(GameManager.instance.playerController[controllerIndex]);
-            nextController.transform.position = playerStarts[chapterIndex].position;
-            nextController.transform.rotation = playerStarts[chapterIndex].rotation;
+            Vector3 nextSpawnPos = playerStarts[chapterIndex].position;
+            Quaternion nextSpawnRot = playerStarts[chapterIndex].rotation;
+
+            bool invert = chapter == Chapter.GARTEN_INVERSE;
             
-            nextController.GetComponent<BasePlayerController>().InitController();
-            nextController.GetComponent<BasePlayerController>().LockInput();
-            nextController.SetActive(true);
-            
-            return nextController;
+            return base.SpawnPlayer(controllerIndex, nextSpawnPos, nextSpawnRot, invert);
         }
 
-        else //Farewell doesnt need controller
+        if (chapter == Chapter.FAREWELL)
         {
-            return null;
+            return farewellCamera;
         }
-        
+
+        return null;
+
     }
 
-    public override void ShowStoryPoints(bool gardenSwitch = false)
+    private void UpdateSettings()
+    {
+        switch (SettingsManager.instance.language)
+        {
+            case SettingsManager.Language.German:
+                english = false;
+                break;
+            
+            case SettingsManager.Language.English:
+                english = true;
+                break;
+        }
+    }
+
+    public override void ShowStoryPoints(bool gardenSwitch = false, bool isInverse = false)
     {
         if (gardenSwitch)
         {
@@ -167,7 +196,7 @@ public class SceneGarten : SceneLoader
             
             foreach (GameObject storyPoint in chapterHolders[chapterIndex].storyPoints)
             {
-                storyPoint.GetComponent<StoryPoint>().FadeIn();
+                storyPoint.GetComponent<StoryPoint>().FadeIn(isInverse);
             }
                
         }
@@ -179,6 +208,7 @@ public class SceneGarten : SceneLoader
         
         switch (chapter)
         {
+         
             case Chapter.GARTEN:
                 storyPointCount = GlobalProgress.GetStorypointCounter(Chapter.GARTEN);
                 
@@ -216,6 +246,7 @@ public class SceneGarten : SceneLoader
                 else if (internalChapterProgress == storyPointCount)
                 {
                     Debug.Log("Garten Inverse: All necessary story points scanned. Portal opened.");
+                    gartenDoorBlocker.SetActive(false);
                     gartenInversePortal.EnablePortal();
                     gartenInversePortalText.text = "";
                 }
@@ -237,6 +268,7 @@ public class SceneGarten : SceneLoader
                 else if (internalChapterProgress == storyPointCount)
                 {
                     Debug.Log("Pigeon: All necessary story points scanned. Portal opened.");
+                    gartenDoorBlocker.SetActive(false);
                     pigeonPortal.EnablePortal();
                     pigeonPortalText.text = "";
                 }

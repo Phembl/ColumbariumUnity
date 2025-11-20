@@ -51,6 +51,8 @@ public abstract class BasePlayerController : MonoBehaviour
 
     // Constants
     protected const float GROUND_CHECK_DISTANCE = 0.3f;
+    
+    
 
     protected virtual void Awake()
     {
@@ -97,12 +99,16 @@ public abstract class BasePlayerController : MonoBehaviour
     {
         // Enable input actions
         inputActions.Enable();
+        
+        MenuManager.PauseGame += GamePaused;
     }
 
     protected virtual void OnDisable()
     {
         // Disable input actions
         inputActions.Disable();
+        
+        MenuManager.PauseGame -= GamePaused;
     }
 
     protected virtual void Start()
@@ -145,6 +151,12 @@ public abstract class BasePlayerController : MonoBehaviour
         HandleMovement();
     }
 
+    private void GamePaused(bool paused)
+    {
+        if (paused) LockInput();
+        else UnlockInput();
+    }
+
     private void CheckForInteractableObjects()
     {
         if (cameraTransform == null)
@@ -179,7 +191,7 @@ public abstract class BasePlayerController : MonoBehaviour
         }
     }
 
-    protected virtual void InteractWithObject()
+    private void InteractWithObject()
     {
         if (isInputLocked)
         {
@@ -282,7 +294,16 @@ public abstract class BasePlayerController : MonoBehaviour
         isInputLocked = false;
         rb.isKinematic = false;
     }
-    
 
+    public void UpdateControllerSettings(float newMoveSpeed, float newLookSensi, float birdRiseSpeed, float birdGLideSpeed, float birdGravityPull)
+    {
+        lookSensitivity = newLookSensi;
+        UpdateSpecificSettings(newMoveSpeed, birdRiseSpeed,  birdGLideSpeed, birdGravityPull);
+        
+    }
+    
+    protected abstract void UpdateSpecificSettings(float newMoveSpeed, float birdRiseSpeed = 0f, float birdGLideSpeed = 0f, float birdGravityPull = 0f);
+    
     #endregion
+    
 }

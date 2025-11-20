@@ -32,7 +32,7 @@ namespace COLUMBARIUM.Global
             "PART 0: PROLOGUE",
             "PART I: NICHTS",
             "PART II: PARADISE GARDEN",
-            "PART II.II: PARADISE GARDEN INVERSE",
+            "REVERSE PARADISE GARDEN",
             "PART II.II.q: INVERSE QUESTION",
             "PART III: DER TAUBENSCHLAG",
             "PART III.p: TAUBENSCHLAG QUESTION",
@@ -46,10 +46,10 @@ namespace COLUMBARIUM.Global
 
         };
 
-        public static bool english = false;
+        //public static bool english = false;
 
         //This holds the amount of story points for each chapter
-        private static int[] storypointCounter = { 0, 0, 0, 5, 3, 0, 7, 0, 6, 0, 5, 0, 0, 0, 0 };
+        private static int[] storypointCounter = { 0, 0, 0, 5, 2, 0, 4, 0, 4, 0, 3, 0, 0, 0, 0 };
 
         public static void OverrideStorypointCounter(Chapter chapter, int value)
         {

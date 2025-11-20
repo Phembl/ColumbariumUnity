@@ -1,10 +1,12 @@
 using System;
 using System.Collections;
+using COLUMBARIUM.Global;
 using DG.Tweening;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 public class MenuManager : MonoBehaviour
 {
@@ -14,7 +16,7 @@ public class MenuManager : MonoBehaviour
     [SerializeField] private AudioManager audioManager;
     [SerializeField] private GameObject menuHolder;
     [TitleGroup("Menu Pages")]   
-    [SerializeField] private GameObject hauptMenu;
+    [SerializeField] private GameObject mainMenu;
     [SerializeField] private GameObject controlsMenu;
     [SerializeField] private GameObject chapterMenu;
     [SerializeField] private GameObject settingsMenu;
@@ -23,6 +25,7 @@ public class MenuManager : MonoBehaviour
     [SerializeField] private GameObject playerHumanSettingsMenu;
     [SerializeField] private GameObject playerBirdSettingsMenu;
     [SerializeField] private GameObject playerBugSettingsMenu;
+    [SerializeField] private GameObject gameSettingsMenu;
     
         
     // Input Actions
@@ -40,6 +43,18 @@ public class MenuManager : MonoBehaviour
     private int currentSelection;
     private GameObject[] menuPages;
     private GameObject currentSelectionHolder;
+    
+    //Setting menu
+    private bool settingMenuIsOpen;
+    private Slider activeSettingsSlider;
+    private float activeSliderMod = 1f;
+    private int currentSettingMenuID = -1;
+    Transform currentSliderHolder;
+    Transform currentNumberHolder;
+    private readonly float[] gameSettingsSliderMods =  {0.5f, 0.5f, 2f };
+    
+    // Events
+    public static event Action<bool> PauseGame;
 
     // Setup
     private float menuFadeTime = 0.5f;
@@ -58,7 +73,7 @@ public class MenuManager : MonoBehaviour
       
         menuPages = new GameObject[]
         {
-            hauptMenu,
+            mainMenu,
             controlsMenu,
             chapterMenu,
             settingsMenu,
@@ -66,7 +81,9 @@ public class MenuManager : MonoBehaviour
             playerSettingsMenu,
             playerHumanSettingsMenu,
             playerBirdSettingsMenu,
-            playerBugSettingsMenu
+            playerBugSettingsMenu,
+            gameSettingsMenu
+            
         };
         
         SetupInputActions();
@@ -96,6 +113,8 @@ public class MenuManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!menuIsUsable) return;
+        
         if (menuIsOpen)
         {
             navigationInput = navigateAction.ReadValue<Vector2>();
@@ -112,29 +131,41 @@ public class MenuManager : MonoBehaviour
     {
         menuIsUsable = false;
     }
-    private void OpenMenu()
+    private void OpenMenu(bool closeInstant = false)
     {
-        if (!menuIsUsable)
-            return;
+        if (!menuIsUsable) return;
         
         if (menuIsOpen)
         {
             Debug.Log("Menu is closing");
-            menuHolder.GetComponent<CanvasGroup>().DOFade(0f, menuFadeTime)
-                .OnComplete(() =>
+            if (closeInstant)
+            {
+                menuIsOpen = false;
+                ResetMenu();
+                //StoryManager.Instance.UnpauseGame();
+                PauseGame?.Invoke(false);
+            }
+            else
+            {
+                menuHolder.GetComponent<CanvasGroup>().DOFade(0f, menuFadeTime)
+                    .OnComplete(() =>
                     { 
                         menuIsOpen = false;
                         ResetMenu();
-                        StoryManager.Instance.UnpauseGame();
+                        //StoryManager.Instance.UnpauseGame();
+                        PauseGame?.Invoke(false);
                     });
+            }
+         
             
         }
         else
         {
             Debug.Log("Menu is opening");
-            StoryManager.Instance.PauseGame();
+            //StoryManager.Instance.PauseGame();
             StartCoroutine(SwitchMenuPage(0));
             menuHolder.GetComponent<CanvasGroup>().DOFade(1f, menuFadeTime);
+            PauseGame?.Invoke(true);
             
             
         }
@@ -155,12 +186,15 @@ public class MenuManager : MonoBehaviour
         currentMenuPage = page;
         Debug.Log("Opening menu: " + menuPages[page].name);
         
-        //Finds "Auswahl" object which holds menu points
-        currentSelectionHolder = menuPages[page].transform.Find("Auswahl").gameObject;
-        if (currentSelectionHolder == null)Debug.LogError("Auswahl Holder not found");
+        //Finds "pages" object which holds menu points
+        currentSelectionHolder = menuPages[page].transform.Find("pages").gameObject;
+        if (currentSelectionHolder == null)Debug.LogError("pages Holder not found");
         
         //Fades in new Menu page
         menuPages[page].GetComponent<CanvasGroup>().DOFade(1f, menuFadeTime).OnComplete(() => menuIsOpen = true).SetEase(Ease.OutQuad);
+        
+        //Select first item
+        currentSelectionHolder.transform.GetChild(0).gameObject.GetComponent<TextMeshProUGUI>().fontStyle = FontStyles.Underline;
         currentSelection = 0;
 
     }
@@ -209,7 +243,13 @@ public class MenuManager : MonoBehaviour
                 {
                     currentSelection--;
                 }
+                
+                if (settingMenuIsOpen)
+                {
+                    UpdateCurrentSettingSlider();
+                }
             }
+            
             else if (navigationInput.y < 0)
             {
                 if (currentSelection < currentSelectionHolder.transform.childCount - 1)
@@ -220,6 +260,12 @@ public class MenuManager : MonoBehaviour
                 {
                     currentSelection = 0;
                 }
+
+                if (settingMenuIsOpen)
+                {
+                    UpdateCurrentSettingSlider();
+                }
+
             }
             
             foreach (Transform child in currentSelectionHolder.transform)
@@ -229,6 +275,22 @@ public class MenuManager : MonoBehaviour
         
             currentSelectionHolder.transform.GetChild(currentSelection).gameObject.GetComponent<TextMeshProUGUI>().fontStyle = FontStyles.Underline;
             
+
+            if (settingMenuIsOpen)
+            {
+                //Update Slider positions
+                if (navigationInput.x > 0)
+                {
+                    UpdateCurrentSliderValue(true);
+                }
+                
+                else if (navigationInput.x < 0)
+                {
+                    UpdateCurrentSliderValue(false);
+             
+                }
+            }
+            
         }
 
         else if (navigationInput.magnitude < 0.1)
@@ -236,25 +298,29 @@ public class MenuManager : MonoBehaviour
             navigationProcessing = false;
         }
         
-
-        
     }
+
+    
     
     void GoPageBack()
     {
         if (!menuIsOpen) return;
 
+        Debug.Log("Menu Manager: Going page back");
         switch (currentMenuPage)
         {
             case 0:
                 return;
             case 1: // controls -> main
-            case 2: // chapters -> main
+            case 2: // parts -> main
             case 3: // settings -> main
                 StartCoroutine(SwitchMenuPage(0, true));
                 break;
             case 4: // audioSettings -> settings
             case 5: // playerSettings -> settings
+            case 9: // gameSettings -> settings
+                settingMenuIsOpen = false;
+                currentSettingMenuID = -1;
                 StartCoroutine(SwitchMenuPage(3, true));
                 break;
             case 6: // playerHumanSettings -> playerSettings
@@ -272,7 +338,11 @@ public class MenuManager : MonoBehaviour
         if (!menuIsOpen) return;
 
         // Catch Back button
-        if (currentMenuPage != 0 && currentSelection == currentSelectionHolder.transform.childCount - 1) GoPageBack();
+        if (currentMenuPage != 0 && currentSelection == currentSelectionHolder.transform.childCount - 1)
+        {
+            GoPageBack();
+            return;
+        }
             
         switch (currentMenuPage)
         {
@@ -282,16 +352,21 @@ public class MenuManager : MonoBehaviour
                     case 0: // -> Controls
                         StartCoroutine(SwitchMenuPage(1, true));
                         break;
-                    case 1: // -> Controls
+                    case 1: // -> Parts
                         StartCoroutine(SwitchMenuPage(2, true));
                         break;
-                    case 2: // -> Credits
-                        OpenMenu(); // Close Menu
-                        StoryManager.Instance.ResetGame(true);
+                    
+                    case 2: // -> Settings
+                        StartCoroutine(SwitchMenuPage(3, true));
                         break;
-                    case 3: // -> Restart
+                    
+                    case 3: // -> Credits
                         OpenMenu(); // Close Menu
-                        StoryManager.Instance.ResetGame();
+                        //StoryManager.Instance.ResetGame(true);
+                        break;
+                    case 4: // -> Restart
+                        OpenMenu(true); // Close Menu
+                        GameManager.instance.Restart();
                         break;
                     
                 }
@@ -302,9 +377,53 @@ public class MenuManager : MonoBehaviour
                 // Should never trigger because only Button is back button
                 break;
             
-            case 2: // In chapters menu
-                OpenMenu(); // Close Menu
-                StoryManager.Instance.StartNewGame(currentSelection); //Load selected scene
+            case 2: // In parts menu
+                OpenMenu(true); // Close Menu
+                //Load selected scene
+                StoryManager2.instance.EndChapterEarly();
+                switch (currentSelection)
+                {
+                    case 0:
+                        GameManager.instance.Restart(true, Chapter.PROLOG);
+                        break;
+                    
+                    case 1:
+                        GameManager.instance.Restart(true, Chapter.NICHTS);
+                        break;
+                    
+                    case 2:
+                        GameManager.instance.Restart(true, Chapter.GARTEN);
+                        break;
+                    
+                    case 3:
+                        GameManager.instance.Restart(true, Chapter.TAUBENSCHLAG);
+                        break;
+                    
+                    case 4:
+                        GameManager.instance.Restart(true, Chapter.PIGEON);
+                        break;
+                    
+                    case 5:
+                        GameManager.instance.Restart(true, Chapter.TRICKSTER);
+                        break;
+                    
+                    case 6:
+                        GameManager.instance.Restart(true, Chapter.EMBRYO);
+                        break;
+                    
+                    case 7:
+                        GameManager.instance.Restart(true, Chapter.FAREWELL);
+                        break;
+                    
+                    case 8:
+                        GameManager.instance.Restart(true, Chapter.EPILOG);
+                        break;
+                    
+                    case 9:
+                        GameManager.instance.Restart(true, Chapter.GARTEN_INVERSE);
+                        break;
+                }
+                 
                 break;
             
             case 3: // In Settings menu
@@ -315,6 +434,11 @@ public class MenuManager : MonoBehaviour
                         break;
                     case 1: // -> PlayerSettings
                         StartCoroutine(SwitchMenuPage(5, true));
+                        break;
+                    
+                    case 2: // -> GameSettings
+                        PrepareSettingsMenu(2);
+                        StartCoroutine(SwitchMenuPage(9, true));
                         break;
 
                 }
@@ -348,8 +472,109 @@ public class MenuManager : MonoBehaviour
             case 8: // Player Bug settings
                 break;
             
+            case 9: //Game Settings
+              
+                //This might not be needed because settings don't need to be selected (language, bools?)
+
+                break;
+            
         }
 
     }
+
+    #region |---------- SETTINGS MENUS ----------|
+
+    void PrepareSettingsMenu(int settingID)
+    {
+        settingMenuIsOpen = true;
+
+        switch (settingID)
+        {
+            case 0: //Audio
+                currentSettingMenuID = 0;
+                break;
+
+            case 1: //Player
+                currentSettingMenuID = 1;
+                break;
+
+
+            case 2: //Game
+                currentSliderHolder = gameSettingsMenu.transform.Find("sliders");
+                currentNumberHolder = gameSettingsMenu.transform.Find("numbers");
+
+                currentSliderHolder.GetChild(0).gameObject.GetComponent<Slider>().value =
+                    SettingsManager.instance.blackScreenFadeTime;
+                currentNumberHolder.GetChild(0).gameObject.GetComponent<TMP_Text>().text =
+                    $"[{SettingsManager.instance.blackScreenFadeTime}]";
+                
+                currentSliderHolder.GetChild(1).gameObject.GetComponent<Slider>().value =
+                    SettingsManager.instance.controlsDisplayDuration;
+                currentNumberHolder.GetChild(1).gameObject.GetComponent<TMP_Text>().text =
+                    $"[{SettingsManager.instance.controlsDisplayDuration}]";
+                
+                currentSliderHolder.GetChild(2).gameObject.GetComponent<Slider>().value =
+                    SettingsManager.instance.creditsDuration;
+                currentNumberHolder.GetChild(2).gameObject.GetComponent<TMP_Text>().text =
+                    $"[{SettingsManager.instance.creditsDuration}]";
+
+                activeSettingsSlider = currentSliderHolder.GetChild(0).gameObject.GetComponent<Slider>();
+                currentSettingMenuID = 2;
+                break;
+
+            default:
+                Debug.Log("Menu Manager: Invalid Settings Menu");
+                break;
+        }
+
+    }
+    
+    void UpdateCurrentSettingSlider() //Called by NavigateMenu()
+    {
+        if (!settingMenuIsOpen) return;
+        
+        Debug.Log("Menu Manager: Updating current setting slider");
+
+        switch (currentSettingMenuID)
+        {
+            case 0: //In audio settings
+                break;
+            
+            case 1: //In player settings
+                break;
+            
+            case 2: //In game settings
+                activeSettingsSlider = currentSliderHolder.GetChild(currentSelection).gameObject.GetComponent<Slider>();
+                activeSliderMod = gameSettingsSliderMods[currentSelection];
+                break;
+        }
+
+        
+        
+    }
+    
+    void UpdateCurrentSliderValue(bool positive)
+    {
+        if (positive)
+        {
+            if (activeSettingsSlider.value + activeSliderMod <= activeSettingsSlider.maxValue)
+                activeSettingsSlider.value += activeSliderMod;
+            else activeSettingsSlider.value = activeSettingsSlider.maxValue;
+            
+        }
+        
+        else
+        {
+            if (activeSettingsSlider.value - activeSliderMod >= activeSettingsSlider.minValue)
+                activeSettingsSlider.value -= activeSliderMod;
+            else activeSettingsSlider.value = activeSettingsSlider.minValue;
+        }
+        
+        currentNumberHolder.GetChild(currentSelection).GetComponent<TMP_Text>().text =
+            $"[{activeSettingsSlider.value.ToString()}]";
+    }
+        
+    #endregion
+    
 
 }

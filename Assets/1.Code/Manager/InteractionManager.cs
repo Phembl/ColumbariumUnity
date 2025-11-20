@@ -10,12 +10,16 @@ public class InteractionManager : MonoBehaviour
     // Input Actions
     private InputAction navigateAction;
     private InputAction submitAction;
+    private InputAction pauseAction;
     private InputAction startAction;
+    private InputAction skipAction;
     private Vector2 navigationInput;
     
     // Events
-    public static event Action StartButtonPressed;
+    public static event Action PauseButtonPressed;
     public static event Action SubmitButtonPressed;
+    public static event Action StartButtonPressed;
+    public static event Action SkipButtonPressed;
     public static event Action<int> NavigationInput;
     
     // External Control
@@ -52,9 +56,13 @@ public class InteractionManager : MonoBehaviour
         // Set up common actions
         navigateAction = playerActionMap.FindAction("Navigate");
         submitAction = playerActionMap.FindAction("Submit");
-        startAction = playerActionMap.FindAction("Pause");
+        pauseAction = playerActionMap.FindAction("Pause");
+        skipAction = playerActionMap.FindAction("Skip");
+        startAction = playerActionMap.FindAction("Start");
         
         submitAction.performed += ctx => PressSubmitButton();
+        pauseAction.performed += ctx => PressPauseButton();
+        skipAction.performed += ctx => PressSkipButton();
         startAction.performed += ctx => PressStartButton();
         
         inputActions.Enable();
@@ -67,12 +75,12 @@ public class InteractionManager : MonoBehaviour
         isActive = activate;
     }
 
-    void PressStartButton()
+    void PressPauseButton()
     {
         if (!isActive) return;
         
-        Debug.Log("InteractionManager: Start button pressed");
-        StartButtonPressed?.Invoke();
+        Debug.Log("InteractionManager: Pause button pressed");
+        PauseButtonPressed?.Invoke();
     }
 
     void PressSubmitButton()
@@ -81,6 +89,20 @@ public class InteractionManager : MonoBehaviour
         
         Debug.Log("InteractionManager: Submit button pressed");
         SubmitButtonPressed?.Invoke();
+    }
+
+    void PressSkipButton()
+    {
+        if (!isActive) return;
+        Debug.Log("InteractionManager: Skip button pressed");
+        SkipButtonPressed?.Invoke();
+    }
+
+    void PressStartButton()
+    {
+        if (!isActive) return;
+        Debug.Log("InteractionManager: Start button pressed");
+        StartButtonPressed?.Invoke();
     }
 
     

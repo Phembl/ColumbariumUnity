@@ -39,12 +39,16 @@ public class AudioManager : MonoBehaviour
     [Range(-80, 20)]
     public int neinGartenAttenuation = 0;
     
+    //Settings
+    private bool english;
     
     //Master
     private float masterVolume;
     //StoryPoint Audio
     private bool storyPointIsPlaying;
     private AudioPlayer currentStoryPointAudioPlayer;
+    
+    private StoryPoint lastStoryPoint;
     
     [Button("Set Attenuation")]
     public void button()
@@ -62,14 +66,44 @@ public class AudioManager : MonoBehaviour
         }
         instance = this;
         
+        MenuManager.PauseGame += GamePaused;
+        
     }
 
     void Start()
     { 
         audioMixer.GetFloat("MasterVol", out masterVolume);
         changeVolume();
+        UpdateSettings();
+    }
+    
+    private void UpdateSettings()
+    {
+        switch (SettingsManager.instance.language)
+        {
+            case SettingsManager.Language.German:
+                english = false;
+                break;
+            
+            case SettingsManager.Language.English:
+                english = true;
+                break;
+        }
     }
 
+    void GamePaused(bool paused)
+    {
+        if (paused)
+        {
+            if (currentStoryPointAudioPlayer != null) currentStoryPointAudioPlayer.PauseAudio();
+           
+        }
+        else
+        {
+            if (currentStoryPointAudioPlayer != null) currentStoryPointAudioPlayer.UnpauseAudio();
+        }
+    }
+    
     void changeVolume()
     {
         audioMixer.SetFloat("VoiceVol", (voiceAttenuation));
@@ -91,6 +125,11 @@ public class AudioManager : MonoBehaviour
         
         AudioClip narrationClip = narrationAudioClips[narrationIndex];
 
+        if (english && narrationIndex == 4) //Override Farewell
+        {
+            narrationClip = narrationAudioClips[7];
+        }
+
         narrationAudioSource.clip = narrationClip;
         
         narrationAudioSource.Play();
@@ -98,52 +137,44 @@ public class AudioManager : MonoBehaviour
         return narrationClip.length;
     }
 
-    public void PlayStoryPointAudio(StoryPoint storyPoint)
+    public void StopNarrationAudio()
+    {
+        narrationAudioSource.Stop();
+    }
+
+    public void PlayStoryPointAudio(StoryPoint storyPoint, bool makeBigger = false)
     {
         
+        AudioClip audioClip = null;
         
-        AudioClip audioClip = storyPoint.storyAudioClip;
+        if (english) audioClip = storyPoint.storyAudioClipEN;
+        else audioClip = storyPoint.storyAudioClip;
+        
+        if (audioClip == null) audioClip = storyPoint.storyAudioClip; //Fallback to german
+        
         Vector3 position = storyPoint.gameObject.transform.position;
         
         if (currentStoryPointAudioPlayer != null)
         {
             //FadeOut currently playing story
-           currentStoryPointAudioPlayer.StopAudio();
+            lastStoryPoint.ResetImmediately();
+            currentStoryPointAudioPlayer.StopAudio();
         }
-        
+        lastStoryPoint = storyPoint;
         
         GameObject newStoryPointAudioPlayer = Instantiate(storyPointAudioPlayer, position, Quaternion.identity);
         newStoryPointAudioPlayer.name = $"AudioPlayer_{storyPoint.name}";
         
         currentStoryPointAudioPlayer = newStoryPointAudioPlayer.GetComponent<AudioPlayer>();
+
+        if (makeBigger)
+        {
+            AudioSource currentAudioSource = currentStoryPointAudioPlayer.gameObject.GetComponent<AudioSource>();
+            if (currentAudioSource != null) currentAudioSource.maxDistance *= 3;
+        }
+        
         currentStoryPointAudioPlayer.PlayAudio(audioClip);
-
-        //GameObject storyPoint, AudioClip clip, Vector3 position
-
-        /*
-        if (chapterIsFadingOut)
-        {
-            // Don't allow any new Audio if the chapter is currently fading out to avoid overlapping bugs
-            return;
-        }
-
-
-
-       
-
-        // Create Story Audio Object
-        if (voiceOnly)
-        {
-            storyAudioPlayerObject = Object.Instantiate(voiceAudioPlayer, position, Quaternion.identity);
-        }
-        else
-        {
-            storyAudioPlayerObject = Object.Instantiate(storyPointAudioPlayer, player.transform.position, Quaternion.identity);
-        }
-
-        storyAudioPlayerObject.GetComponent<AudioPlayer>().PlayAudio(clip);
-        waitForAudioEndTime = storyAudioPlayerObject.GetComponent<AudioSource>().clip.length + 1f;
-        */
+        
     }
 
     public IEnumerator FadeAwayAudio(float fadeTime = 2f, bool resetAfter = true)

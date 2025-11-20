@@ -15,6 +15,13 @@ public class StoryPoint : MonoBehaviour
     
     [Tooltip("The audio clip to play during the story moment")]
     public AudioClip storyAudioClip;
+    public AudioClip storyAudioClipEN;
+    [SerializeField] private bool makeAudioBigger;
+    [Space]
+
+    [SerializeField] private bool hasWorldText;
+    [SerializeField] private TMP_Text[] worldTextTMP;
+    private TMP_Text worldText;
 
 
     // Interaction Settings
@@ -24,7 +31,7 @@ public class StoryPoint : MonoBehaviour
     
     private GameObject storyObject;
     private GameObject activeModel;
-    private GameObject worldText;
+   
     private Color textColor;
     private MeshRenderer modelRenderer;
     private Material modelMaterial;
@@ -32,15 +39,18 @@ public class StoryPoint : MonoBehaviour
     private Tween pulseTween;
 
     // Track if this story has been triggered
-    private bool hasBeenTriggered;
+    private bool hasBeenTriggeredBefore;
     private bool isCurrentlyPlaying;
 
-    // We're using trigger colliders only
+    //Settings
+    private bool english;
+
+    private Coroutine resetTimer;
     
 
     public void Reset() //This is called at the beginning of the game by StoryManager
     {
-        
+        UpdateSettings();
         // Setup Model
         Transform childTransform = transform.Find("StoryObject");
         activeModel = childTransform?.gameObject;
@@ -55,22 +65,46 @@ public class StoryPoint : MonoBehaviour
             Debug.LogError("No Story Object found!");
         }
         
-        
-        // Setup Worldtext (The text that some StoryPoints leave in the Scene)
-        childTransform = transform.Find("Worldtext");
-        worldText = childTransform?.gameObject;
-        if (worldText != null)
-        {
-            worldText.GetComponent<TextMeshPro>().DOFade(0f, 0f);
-        }
-
         // Starting Color is black, objects are faded in
         modelMaterial.DOColor(Color.black, "_Tint", 0f);
+        
+        // Setup Worldtext
+        if (hasWorldText)
+        {
+            if (worldTextTMP.Length != 2)
+            {
+                Debug.Log($"{gameObject.name} has not enough worldText Objects. Setup aborted");
+                hasWorldText = false;
+                return;
+            }
+            if (english) worldText = worldTextTMP[1];
+            else worldText = worldTextTMP[0];
+            
+            worldTextTMP[0].DOFade(0f, 0f);
+            worldTextTMP[1].DOFade(0f, 0f);
+        }
+
+     
+    }
+    
+    
+    private void UpdateSettings()
+    {
+        switch (SettingsManager.instance.language)
+        {
+            case SettingsManager.Language.German:
+                english = false;
+                break;
+                
+            case SettingsManager.Language.English:
+                english = true;
+                break;
+        }
     }
 
     public void FadeIn(bool invert = false)
     {
-        hasBeenTriggered = false;
+        hasBeenTriggeredBefore = false;
         if (!invert)
         {
             modelMaterial.DOColor(Color.white, "_Tint", 2f); 
@@ -91,9 +125,10 @@ public class StoryPoint : MonoBehaviour
 
     public void OnInteract()
     {
-        Debug.Log("Starting interaction with" + gameObject.name);
         if (isCurrentlyPlaying)
             return;
+        
+        Debug.Log("Starting interaction with " + gameObject.name);
         
         isCurrentlyPlaying =  true;
         
@@ -101,28 +136,28 @@ public class StoryPoint : MonoBehaviour
         if (pulseTween.IsActive()) pulseTween.Kill();
         modelMaterial.DOFloat(1f, "_SizeVariation", 0.5f);
         
-        if (!hasBeenTriggered)
+        if (!hasBeenTriggeredBefore)
         {
-            hasBeenTriggered = true;
+            hasBeenTriggeredBefore = true;
             colorTween = modelMaterial.DOColor(inactiveColor, "_Tint", inactiveFadeTime).SetEase(Ease.InQuad);
-            AudioManager.instance.PlayStoryPointAudio(this);
+            AudioManager.instance.PlayStoryPointAudio(this, makeAudioBigger);
             StoryManager2.instance.CheckStoryProgress();
 
-            if (worldText != null) StartCoroutine(ShowWorldText());
+            if (hasWorldText) StartCoroutine(ShowWorldText());
         }
         
         else
         {
-            AudioManager.instance.PlayStoryPointAudio(this);
+            AudioManager.instance.PlayStoryPointAudio(this, makeAudioBigger);
         }
         
-        StartCoroutine(WaitForReset(storyAudioClip.length + 1f));
+        resetTimer = StartCoroutine(WaitForReset(storyAudioClip.length + 1f));
     }
     
     private IEnumerator ShowWorldText()
     {
         yield return new WaitForSeconds(storyAudioClip.length - 2f);
-        if (worldText != null) worldText.GetComponent<TextMeshPro>().DOFade(1f, 20f);
+        if (hasWorldText) worldText.DOFade(1f, 20f);
     }
     
     public void OnHoverEnter()
@@ -147,6 +182,13 @@ public class StoryPoint : MonoBehaviour
     private IEnumerator WaitForReset(float waitTime)
     {
         yield return new WaitForSeconds(waitTime);
+        isCurrentlyPlaying = false;
+    }
+
+    public void ResetImmediately()
+    {
+        if (resetTimer != null) StopCoroutine(resetTimer);
+        resetTimer = null;
         isCurrentlyPlaying = false;
     }
     

@@ -11,7 +11,7 @@ public class StoryPortal : MonoBehaviour
     private string playerTag = "Player";
 
     //Set by StoryManager
-    private bool isActive;
+    public bool isActive;
     
     
     private void OnTriggerEnter(Collider other)

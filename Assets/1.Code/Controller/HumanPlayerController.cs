@@ -29,6 +29,11 @@ public class HumanPlayerController : BasePlayerController
 
     }
 
+    protected override void UpdateSpecificSettings(float newMoveSpeed, float birdRiseSpeed = 0f, float birdGLideSpeed = 0f, float birdGravityPull = 0f)
+    {
+        walkSpeed = newMoveSpeed;
+    }
+
     /// <summary>
     /// Handles movement physics for human mode
     /// </summary>
