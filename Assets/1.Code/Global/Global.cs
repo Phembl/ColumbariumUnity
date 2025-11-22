@@ -20,6 +20,46 @@ namespace COLUMBARIUM.Global
         EPILOG, //13
         CREDITS //14
     }
+    
+    public enum Language
+    {
+        German,
+        English
+    }
+
+    public struct Settings
+    {
+        //Game
+        public Language _language;
+        public bool _showScanCounter;
+        
+        //UI
+        public float _blackScreenFadeTime;
+        public float _controlsDisplayDuration;
+        public float _creditsDuration;
+        
+        //Controller
+        //Human
+        public float _humanMoveSpeed;
+        public float _humanLookSensitivity;
+        //Bird
+        public float _birdRiseSpeed;
+        public float _birdGlideSpeed;
+        public float _birdGravityPull;
+        public float _birdLookSensitivity;
+        //Bug
+        public float _bugMoveSpeed;
+        public float _bugLookSensitivity;
+    }
+
+    public struct AudioSettings
+    {
+        public int _narrationAtt;
+        public int _storyPointsAtt;
+        public int _cinematicAtt;
+        public int _atmosphereAtt;
+        
+    }
 
 
 
@@ -140,6 +180,7 @@ namespace COLUMBARIUM.Global
         }
 
     }
+    
 }
 
 

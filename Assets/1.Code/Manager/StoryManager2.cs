@@ -634,7 +634,6 @@ public class StoryManager2 : MonoBehaviour
     private bool submitButtonPressed;
 
     private int skipTracker;
-   
     
     private void OnEnable()
     {

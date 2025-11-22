@@ -1,9 +1,11 @@
 using System;
 using System.Collections;
+using COLUMBARIUM.Global;
 using DG.Tweening;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Audio;
+using AudioSettings = COLUMBARIUM.Global.AudioSettings;
 
 public class AudioManager : MonoBehaviour
 {
@@ -39,8 +41,11 @@ public class AudioManager : MonoBehaviour
     [Range(-80, 20)]
     public int neinGartenAttenuation = 0;
     
+    private int atmosphereAttenuation = 0;
+    
     //Settings
-    private bool english;
+    //private bool english;
+    private Language language;
     
     //Master
     private float masterVolume;
@@ -79,16 +84,7 @@ public class AudioManager : MonoBehaviour
     
     private void UpdateSettings()
     {
-        switch (SettingsManager.instance.language)
-        {
-            case SettingsManager.Language.German:
-                english = false;
-                break;
-            
-            case SettingsManager.Language.English:
-                english = true;
-                break;
-        }
+        language = SettingsManager.instance.GetLanguage();
     }
 
     void GamePaused(bool paused)
@@ -118,6 +114,27 @@ public class AudioManager : MonoBehaviour
         audioMixer.SetFloat("NeinGartenVol", (neinGartenAttenuation));
     }
 
+    public AudioSettings GetAudioSettings()
+    {
+        AudioSettings currentAudioSettings = new AudioSettings();
+
+        currentAudioSettings._narrationAtt = voiceAttenuation;
+        currentAudioSettings._storyPointsAtt = storyAttenuation;
+        currentAudioSettings._cinematicAtt = cinematicAttenuation;
+        currentAudioSettings._atmosphereAtt = atmosphereAttenuation;
+        
+        return currentAudioSettings;
+    }
+
+    public void UpdateAudioSettings(AudioSettings newAudioSettings)
+    {
+        float newNarrationAtt = (voiceAttenuation + newAudioSettings._narrationAtt);
+        
+        audioMixer.SetFloat("VoiceVol", (newNarrationAtt));
+        audioMixer.SetFloat("StoryVol", (storyAttenuation));
+        audioMixer.SetFloat("CinematicVol", (cinematicAttenuation));
+    }
+
     public float PlayNarrationAudio(int narrationIndex)
     {
         float audioTime = 0f;
@@ -125,7 +142,7 @@ public class AudioManager : MonoBehaviour
         
         AudioClip narrationClip = narrationAudioClips[narrationIndex];
 
-        if (english && narrationIndex == 4) //Override Farewell
+        if (language == Language.English && narrationIndex == 4) //Override Farewell
         {
             narrationClip = narrationAudioClips[7];
         }
@@ -147,8 +164,20 @@ public class AudioManager : MonoBehaviour
         
         AudioClip audioClip = null;
         
-        if (english) audioClip = storyPoint.storyAudioClipEN;
-        else audioClip = storyPoint.storyAudioClip;
+        switch (language)
+        {
+            case Language.German:
+                audioClip = storyPoint.storyAudioClip;
+                break;
+            
+            case Language.English:
+                audioClip = storyPoint.storyAudioClipEN;
+                break;
+            
+            default:
+                audioClip = storyPoint.storyAudioClipEN;
+                break;
+        }
         
         if (audioClip == null) audioClip = storyPoint.storyAudioClip; //Fallback to german
         

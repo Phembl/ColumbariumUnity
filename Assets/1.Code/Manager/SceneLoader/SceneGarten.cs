@@ -36,7 +36,8 @@ public class SceneGarten : SceneLoader
     private string scanTextPlural = "";
     
     //Settings
-    private bool english;
+    //private bool english;
+    private Language language;
 
 
     //This is called by the GameManager on SceneLoad
@@ -48,15 +49,22 @@ public class SceneGarten : SceneLoader
         UpdateSettings();
         
         //Language
-        if (english)
+        switch (language)
         {
-            scanTextSingular = scanTextHolders[1].text[0];
-            scanTextPlural = scanTextHolders[1].text[1];
-        }
-        else
-        {
-            scanTextSingular = scanTextHolders[0].text[0];
-            scanTextPlural = scanTextHolders[0].text[1];
+            case Language.German:
+                scanTextSingular = scanTextHolders[0].text[0];
+                scanTextPlural = scanTextHolders[0].text[1];
+                break;
+            
+            case Language.English:
+                scanTextSingular = scanTextHolders[1].text[0];
+                scanTextPlural = scanTextHolders[1].text[1];
+                break;
+            
+            default:
+                scanTextSingular = scanTextHolders[1].text[0];
+                scanTextPlural = scanTextHolders[1].text[1];
+                break;
         }
         
         
@@ -166,16 +174,7 @@ public class SceneGarten : SceneLoader
 
     private void UpdateSettings()
     {
-        switch (SettingsManager.instance.language)
-        {
-            case SettingsManager.Language.German:
-                english = false;
-                break;
-            
-            case SettingsManager.Language.English:
-                english = true;
-                break;
-        }
+        language = SettingsManager.instance.GetLanguage();
     }
 
     public override void ShowStoryPoints(bool gardenSwitch = false, bool isInverse = false)

@@ -46,10 +46,11 @@ public class UIManager : MonoBehaviour
     private bool tricksterQuestion;
     
     //Settings
-    private bool english;
+    //private bool english;
+    private Language language;
     private float controlsDisplayDuration;
     private bool showScanCounter;
-    private int creditDuration;
+    private float creditDuration;
     private float blackScreenFadeTime; 
     
     public static UIManager instance;
@@ -61,6 +62,8 @@ public class UIManager : MonoBehaviour
             return;
         }
         instance = this;
+        
+        SettingsManager.SettingsUpdated += UpdateSettings;
     }
     
     public void InitUI()
@@ -92,24 +95,13 @@ public class UIManager : MonoBehaviour
 
     private void UpdateSettings()
     {
-        showScanCounter = SettingsManager.instance.showScanCounter;
-        controlsDisplayDuration =  SettingsManager.instance.controlsDisplayDuration;
-        creditDuration = SettingsManager.instance.creditsDuration;
-        blackScreenFadeTime = SettingsManager.instance.blackScreenFadeTime;
+        Settings currentSettings = SettingsManager.instance.GetSettings();
         
-        
-        switch (SettingsManager.instance.language)
-        {
-            case SettingsManager.Language.German:
-                english = false;
-                break;
-            
-            case SettingsManager.Language.English:
-                english = true;
-                break;
-        }
-        
-        
+        language = currentSettings._language;
+        showScanCounter = currentSettings._showScanCounter;
+        controlsDisplayDuration =  currentSettings._controlsDisplayDuration;
+        creditDuration = currentSettings._creditsDuration;
+        blackScreenFadeTime = currentSettings._blackScreenFadeTime;
     }
     
     public IEnumerator UseBlackScreen(bool activate, bool fade = false, bool finishLoading = false)
@@ -181,9 +173,21 @@ public class UIManager : MonoBehaviour
     public IEnumerator ShowInstructions(int instructionIndex, bool autohide = false)
     {
         TextHolder currentTextHolder;
-       
-        if (english) currentTextHolder = controlsTextHolder[1];
-        else  currentTextHolder = controlsTextHolder[0];
+
+        switch (language)
+        {
+            case Language.German:
+                currentTextHolder = controlsTextHolder[0];
+                break;
+            
+            case Language.English:
+                currentTextHolder = controlsTextHolder[1];
+                break;
+            
+            default:
+                currentTextHolder = controlsTextHolder[1];
+                break;
+        }
         
         string controlsText = currentTextHolder.text[instructionIndex];
         

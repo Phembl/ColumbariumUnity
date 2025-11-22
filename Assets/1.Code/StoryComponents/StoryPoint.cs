@@ -1,4 +1,5 @@
 using System.Collections;
+using COLUMBARIUM.Global;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -43,7 +44,7 @@ public class StoryPoint : MonoBehaviour
     private bool isCurrentlyPlaying;
 
     //Settings
-    private bool english;
+    private Language language;
 
     private Coroutine resetTimer;
     
@@ -77,8 +78,21 @@ public class StoryPoint : MonoBehaviour
                 hasWorldText = false;
                 return;
             }
-            if (english) worldText = worldTextTMP[1];
-            else worldText = worldTextTMP[0];
+            
+            switch (language)
+            {
+                case Language.German:
+                    worldText = worldTextTMP[0];
+                    break;
+            
+                case Language.English:
+                    worldText = worldTextTMP[1];
+                    break;
+            
+                default:
+                    worldText = worldTextTMP[1];
+                    break;
+            }
             
             worldTextTMP[0].DOFade(0f, 0f);
             worldTextTMP[1].DOFade(0f, 0f);
@@ -90,16 +104,8 @@ public class StoryPoint : MonoBehaviour
     
     private void UpdateSettings()
     {
-        switch (SettingsManager.instance.language)
-        {
-            case SettingsManager.Language.German:
-                english = false;
-                break;
-                
-            case SettingsManager.Language.English:
-                english = true;
-                break;
-        }
+        
+        language = SettingsManager.instance.GetLanguage();
     }
 
     public void FadeIn(bool invert = false)
